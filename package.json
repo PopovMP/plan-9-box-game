@@ -1,0 +1,19 @@
+{
+  "name": "plan-9-box-game",
+  "main": "index.ts",
+  "type": "module",
+    "devDependencies": {
+    "@eslint/js": "^9.39.1",
+    "@types/node": "^24.10.0",
+    "esbuild": "^0.25.12",
+    "eslint": "^9.39.1",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.46.3"
+  },
+  "scripts": {
+    "check": "tsc --build",
+    "lint": "eslint",
+    "parse": "node parser.ts",
+    "bundle": "esbuild index.ts --bundle --global-name=App --platform=browser --sourcemap --log-level=warning --outfile=../index.js"
+  }
+}

@@ -1,0 +1,45 @@
+{
+  "include": [
+    "*.ts",
+  ],
+  "compilerOptions": {
+    "incremental": true,
+    "lib": ["ESNext"],
+    "target": "ESNext",
+    "module": "NodeNext",
+
+    // JavaScript
+    "allowJs": true,
+    "checkJs": true,
+    "noEmit": true,
+
+    // Strict Type Checking
+    "strict": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "strictBindCallApply": true,
+    "strictPropertyInitialization": true,
+    "noImplicitThis": true,
+    "alwaysStrict": true,
+    "exactOptionalPropertyTypes": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitOverride": true,
+
+    // Additional Checks
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitAny": true,
+
+    // Module Resolution & Imports
+    "allowImportingTsExtensions": true,
+    "allowSyntheticDefaultImports": true,
+    "forceConsistentCasingInFileNames": true,
+    "isolatedModules": true,
+    "moduleResolution": "NodeNext",
+    "types": ["node"],
+
+    // Output & Performance
+    "skipLibCheck": true,
+  }
+}
