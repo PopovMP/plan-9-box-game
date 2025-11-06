@@ -1,5 +1,5 @@
 import { dirname as getDirname, join as joinPath } from "node:path";
-import { readFileSync, writeFileSync  } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 import process from "node:process";
@@ -53,16 +53,9 @@ function parseLevel(pos: number): {level: IGame, pos: number} {
   return { level, pos };
 }
 
-// TODO: Name it properly
-function isGoodChar(pos: number): boolean {
-  return pos < content.length  &&
-         content[pos] !== "\r" &&
-         content[pos] !== "\n";
-}
-
 function parseComment(level: IGame, pos: number): number {
   let ch: string = content[pos];
-  if (ch !== ";") return pos;
+  if (ch !== ";") throw new Error(`Expecting ";" at pos ${pos}`);
   const zeroCharCode = "0".charCodeAt(0);
   const nineCharCode = "9".charCodeAt(0);
 
@@ -82,7 +75,7 @@ function parseComment(level: IGame, pos: number): number {
 
 function parseMapLine(level: IGame, pos: number): number {
   let ch: string = content[pos];
-  if (ch === ";") return pos;
+  if (ch === ";") throw new Error(`Not expecting ";" at pos ${pos}`);
 
   const chars = [];
   const south = level.map.length;
@@ -120,7 +113,14 @@ function parseMapLine(level: IGame, pos: number): number {
   return eatEOL(pos);
 }
 
+function isGoodChar(pos: number): boolean {
+  return pos < content.length  &&
+         content[pos] !== "\r" &&
+         content[pos] !== "\n";
+}
+
 function eatEOL(pos: number): number {
+  if (pos >= content.length) return pos;
   if (content[pos] === "\r") pos++;
   if (content[pos] === "\n") pos++;
 
