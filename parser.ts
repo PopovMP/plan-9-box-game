@@ -62,11 +62,8 @@ function parseLevel(pos: number): {level: IGame, pos: number} {
   };
 
   pos = parseComment(level, pos);
-
-  let south = 0;
   while (isGoodChar(pos)) {
-    pos = parseMapLine(level, pos, south);
-    south++;
+    pos = parseMapLine(level, pos);
   }
 
   return { level, pos };
@@ -99,11 +96,12 @@ function parseComment(level: IGame, pos: number): number {
   return eatEOL(pos);
 }
 
-function parseMapLine(level: IGame, pos: number, south: number): number {
+function parseMapLine(level: IGame, pos: number): number {
   let ch: string = content[pos];
   if (ch === ";") return pos;
 
   const chars = [];
+  const south = level.map.length;
   let east = 0;
   while (isGoodChar(pos)) {
     ch = content[pos];
