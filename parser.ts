@@ -19,23 +19,7 @@ const __dirname : string = getDirname(__filename);
 
 const inputFilename: string = process.argv[2];
 const inputPath    : string = joinPath(__dirname, inputFilename);
-
-const content: string = readFileSync(inputPath, { encoding: "utf8" });
-
-/*
-; #1
- #####
- #   ####
- #   #  #
- ##    .#
-### ###.#
-# $ # #.#
-# $$# ###
-#@  #
-#####
-
-*/
-
+const content      : string = readFileSync(inputPath, { encoding: "utf8" });
 
 const levels: IGame[] = [];
 parseLevels();
@@ -144,16 +128,13 @@ function eatEOL(pos: number): number {
 }
 
 function stringifyLevels(): string {
-  return "export const levels = [\n" +
-    levels.map((level: IGame): string => {
-      return "{\n" +
-        `  id   : ${level.id},\n` +
-        `  hero : ${JSON.stringify(level.hero)},\n` +
-        `  boxes: ${JSON.stringify(level.boxes)},\n` +
-        "  map  : [\n" +
-          level.map.map((line: string): string => `    "${ line }",`).join("\n") +
-        "\n],\n" +
-      "},";
-    }).join("\n") +
-    "\n];\n";
+  return "export const levels = [{\n" +
+    levels.map((level: IGame): string => "" +
+      `    id   : ${level.id},\n` +
+      `    hero : {s: ${level.hero.s}, e: ${level.hero.e}},\n` +
+      `    boxes: [${level.boxes.map((b: IPoint): string => `{s: ${b.s}, e: ${b.e}}`).join(", ")}],\n` +
+      "    map  : [\n" +
+        level.map.map((line: string): string => `      "${line}",`).join("\n") +
+    "\n  ]").join("}, {\n") +
+    "},\n];\n";
 }
