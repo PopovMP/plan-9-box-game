@@ -128,13 +128,17 @@ function eatEOL(pos: number): number {
 }
 
 function stringifyLevels(): string {
-  return 'import { type IGame } from "./game-engine.ts";\n\nexport const levels: IGame[] = [{\n' +
+  return "" +
+    'import { type IGame } from "./game-engine.ts";\n' +
+    "\n" +
+    "export const levels: IGame[] = [{\n" +
     levels.map((level: IGame): string => "" +
       `    id   : ${level.id},\n` +
       `    hero : {s: ${level.hero.s}, e: ${level.hero.e}},\n` +
       `    boxes: [${level.boxes.map((b: IPoint): string => `{s: ${b.s}, e: ${b.e}}`).join(", ")}],\n` +
       "    map  : [\n" +
-        level.map.map((line: string): string => `      "${line}",`).join("\n") +
-    "\n  ]").join("}, {\n") +
-    "},\n];\n";
+             level.map.map((line: string): string => `      "${line}",`).join("\n") + "\n" +
+      "  ]").join("}, {\n") +
+      "},\n" +
+    "];\n";
 }
