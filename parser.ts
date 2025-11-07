@@ -81,11 +81,7 @@ function parseMapLine(level: IGame, content: string, pos: number): number {
   if (ch !== " " && ch !== "#") throw new Error(`Expecting ' ' or '#' at pos: ${pos}`);
 
   const chars: string[] = [];
-  const south: number   = level.map.length;
-  let east = 0;
-  while (isGoodChar(content, pos)) {
-    ch = content[pos];
-
+  for (let south = level.map.length, east = 0; isGoodChar(content, pos); east++, pos++, ch = content[pos]) {
     switch (ch) {
       case "@":
         level.hero = {s: south, e: east};
@@ -103,13 +99,14 @@ function parseMapLine(level: IGame, content: string, pos: number): number {
         level.boxes.push({s: south, e: east});
         chars.push(".");
         break;
-      default:
-        chars.push(content[pos]);
+      case " ":
+      case "#":
+      case ".":
+        chars.push(ch);
         break;
+      default:
+        throw new Error(`Unexpected char: '${ch}' at pos: ${pos}`);
     }
-
-    east++;
-    pos++;
   }
   level.map.push(chars.join(""));
 
