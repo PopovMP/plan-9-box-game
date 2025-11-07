@@ -31,38 +31,39 @@ writeFileSync(outputPath, outputContent, { encoding: "utf8" });
 function parseLevels(): void {
   let pos = 0;
   while (isGoodChar(pos)) {
-    const res: {level: IGame, pos: number} = parseLevel(pos);
-    levels.push(res.level);
-    pos = eatEOL(res.pos);
+    const level: IGame = {
+      id   : 0,
+      hero : {s: 0, e: 0} as IPoint,
+      boxes: [] as IPoint[],
+      map  : [] as string[],
+    };
+
+    pos = parseLevel(level, pos);
+
+    levels.push(level);
   }
 }
 
-function parseLevel(pos: number): {level: IGame, pos: number} {
-  const level: IGame = {
-    id   : 0,
-    hero : {s: 0, e: 0} as IPoint,
-    boxes: [] as IPoint[],
-    map  : [] as string[],
-  };
-
+function parseLevel(level: IGame, pos: number): number {
   pos = parseComment(level, pos);
+
   while (isGoodChar(pos)) {
     pos = parseMapLine(level, pos);
   }
 
-  return { level, pos };
+  return eatEOL(pos);
 }
 
 function parseComment(level: IGame, pos: number): number {
   let ch: string = content[pos];
-  if (ch !== ";") throw new Error(`Expecting ";" at pos ${pos}`);
-  const zeroCharCode = "0".charCodeAt(0);
-  const nineCharCode = "9".charCodeAt(0);
+  if (ch !== ";") throw new Error(`Expecting ';' at pos ${pos}`);
+  const zeroCharCode: number = "0".charCodeAt(0);
+  const nineCharCode: number = "9".charCodeAt(0);
 
   // ; #107
   while (isGoodChar(pos)) {
     ch = content[pos];
-    const charCode = ch.charCodeAt(0);
+    const charCode: number = ch.charCodeAt(0);
     if (charCode >= zeroCharCode && charCode <= nineCharCode) {
       const digit: number = charCode - zeroCharCode;
       level.id = 10 * level.id + digit;
@@ -75,7 +76,7 @@ function parseComment(level: IGame, pos: number): number {
 
 function parseMapLine(level: IGame, pos: number): number {
   let ch: string = content[pos];
-  if (ch === ";") throw new Error(`Not expecting ";" at pos ${pos}`);
+  if (ch !== " " && ch !== "#") throw new Error(`Expecting ' ' or '#' at pos: ${pos}`);
 
   const chars = [];
   const south = level.map.length;
@@ -133,12 +134,11 @@ function stringifyLevels(): string {
     "\n" +
     "export const levels: IGame[] = [{\n" +
     levels.map((level: IGame): string => "" +
-      `    id   : ${level.id},\n` +
-      `    hero : {s: ${level.hero.s}, e: ${level.hero.e}},\n` +
-      `    boxes: [${level.boxes.map((b: IPoint): string => `{s: ${b.s}, e: ${b.e}}`).join(", ")}],\n` +
-      "    map  : [\n" +
-             level.map.map((line: string): string => `      "${line}",`).join("\n") + "\n" +
-      "  ]").join("}, {\n") +
-      "},\n" +
+    `    id   : ${level.id},\n` +
+    `    hero : {s: ${level.hero.s}, e: ${level.hero.e}},\n` +
+    `    boxes: [${level.boxes.map((b: IPoint): string => `{s: ${b.s}, e: ${b.e}}`).join(", ")}],\n` +
+    "    map  : [\n" +
+           level.map.map((line: string): string => `      "${line}",`).join("\n") + "\n" +
+    "  ]").join("}, {\n") + "},\n" +
     "];\n";
 }
