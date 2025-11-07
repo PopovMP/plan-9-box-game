@@ -17,20 +17,23 @@ if (process.argv.length < 3) {
 const __filename: string = fileURLToPath(import.meta.url);
 const __dirname : string = getDirname(__filename);
 
-const inputFilename: string = process.argv[2];
-const inputPath    : string = joinPath(__dirname, inputFilename);
-const content      : string = readFileSync(inputPath, { encoding: "utf8" });
+main(process.argv[2]);
 
-const levels: IGame[] = [];
-parseLevels();
+function main(inputFilename: string): void {
+  const inputPath: string = joinPath(__dirname, inputFilename);
+  const content  : string = readFileSync(inputPath, { encoding: "utf8" });
 
-const outputContent: string = stringifyLevels();
-const outputPath   : string = joinPath(__dirname, inputFilename.replace(".txt", ".ts"));
-writeFileSync(outputPath, outputContent, { encoding: "utf8" });
+  const levels: IGame[] = [];
+  parseLevels(levels, content);
 
-function parseLevels(): void {
+  const outputPath   : string = joinPath(__dirname, inputFilename.replace(".txt", ".ts"));
+  const outputContent: string = stringifyLevels(levels);
+  writeFileSync(outputPath, outputContent, { encoding: "utf8" });
+}
+
+function parseLevels(levels: IGame[], content: string): void {
   let pos = 0;
-  while (isGoodChar(pos)) {
+  while (isGoodChar(content, pos)) {
     const level: IGame = {
       id   : 0,
       hero : {s: 0, e: 0} as IPoint,
@@ -38,30 +41,29 @@ function parseLevels(): void {
       map  : [] as string[],
     };
 
-    pos = parseLevel(level, pos);
+    pos = parseLevel(level, content, pos);
 
     levels.push(level);
   }
 }
 
-function parseLevel(level: IGame, pos: number): number {
-  pos = parseComment(level, pos);
+function parseLevel(level: IGame, content: string, pos: number): number {
+  pos = parseComment(level, content, pos);
 
-  while (isGoodChar(pos)) {
-    pos = parseMapLine(level, pos);
+  while (isGoodChar(content, pos)) {
+    pos = parseMapLine(level, content, pos);
   }
 
-  return eatEOL(pos);
+  return eatEOL(content, pos);
 }
 
-function parseComment(level: IGame, pos: number): number {
+function parseComment(level: IGame, content: string, pos: number): number {
   let ch: string = content[pos];
   if (ch !== ";") throw new Error(`Expecting ';' at pos ${pos}`);
   const zeroCharCode: number = "0".charCodeAt(0);
   const nineCharCode: number = "9".charCodeAt(0);
 
-  // ; #107
-  while (isGoodChar(pos)) {
+  while (isGoodChar(content, pos)) {
     ch = content[pos];
     const charCode: number = ch.charCodeAt(0);
     if (charCode >= zeroCharCode && charCode <= nineCharCode) {
@@ -71,17 +73,17 @@ function parseComment(level: IGame, pos: number): number {
     pos++;
   }
 
-  return eatEOL(pos);
+  return eatEOL(content, pos);
 }
 
-function parseMapLine(level: IGame, pos: number): number {
+function parseMapLine(level: IGame, content: string, pos: number): number {
   let ch: string = content[pos];
   if (ch !== " " && ch !== "#") throw new Error(`Expecting ' ' or '#' at pos: ${pos}`);
 
-  const chars = [];
-  const south = level.map.length;
+  const chars: string[] = [];
+  const south: number   = level.map.length;
   let east = 0;
-  while (isGoodChar(pos)) {
+  while (isGoodChar(content, pos)) {
     ch = content[pos];
 
     switch (ch) {
@@ -111,16 +113,16 @@ function parseMapLine(level: IGame, pos: number): number {
   }
   level.map.push(chars.join(""));
 
-  return eatEOL(pos);
+  return eatEOL(content, pos);
 }
 
-function isGoodChar(pos: number): boolean {
+function isGoodChar(content: string, pos: number): boolean {
   return pos < content.length  &&
          content[pos] !== "\r" &&
          content[pos] !== "\n";
 }
 
-function eatEOL(pos: number): number {
+function eatEOL(content: string, pos: number): number {
   if (pos >= content.length) return pos;
   if (content[pos] === "\r") pos++;
   if (content[pos] === "\n") pos++;
@@ -128,7 +130,7 @@ function eatEOL(pos: number): number {
   return pos;
 }
 
-function stringifyLevels(): string {
+function stringifyLevels(levels: IGame[]): string {
   return "" +
     'import { type IGame } from "./game-engine.ts";\n' +
     "\n" +
