@@ -63,14 +63,12 @@ function parseComment(level: IGame, content: string, pos: number): number {
   const zeroCharCode: number = "0".charCodeAt(0);
   const nineCharCode: number = "9".charCodeAt(0);
 
-  while (isGoodChar(content, pos)) {
-    ch = content[pos];
+  for (; isGoodChar(content, pos); pos++, ch = content[pos]) {
     const charCode: number = ch.charCodeAt(0);
     if (charCode >= zeroCharCode && charCode <= nineCharCode) {
       const digit: number = charCode - zeroCharCode;
       level.id = 10 * level.id + digit;
     }
-    pos++;
   }
 
   return eatEOL(content, pos);
