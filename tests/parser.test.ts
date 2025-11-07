@@ -1,6 +1,7 @@
 import { describe, it } from "node:test";
-import { strictEqual } from "assert";
-import { levels } from "../easy-levels.ts";
+import { strictEqual  } from "assert";
+
+import { easyLevels } from "../easy-levels.ts";
 
 describe("parser level 1", () => {
   /*
@@ -15,7 +16,7 @@ describe("parser level 1", () => {
       #@  #
       #####
   */
-  const level = levels[0];
+  const level = easyLevels[0];
   it ("parses level id", () => {
     strictEqual(level.id, 1);
   })
@@ -45,7 +46,7 @@ describe("parser level 23", () => {
       #..$..#
       #######
   */
-  const level = levels[22];
+  const level = easyLevels[22];
   it ("parses level id", () => {
     strictEqual(level.id, 23);
   })
@@ -80,7 +81,7 @@ describe("parser level 29", () => {
       ###     #
         #######
   */
-  const level = levels[28];
+  const level = easyLevels[28];
   it ("parses level id", () => {
     strictEqual(level.id, 29);
   })
@@ -96,5 +97,4 @@ describe("parser level 29", () => {
     strictEqual(box0.s, 7);
     strictEqual(box0.e, 4);
   });
-
 });

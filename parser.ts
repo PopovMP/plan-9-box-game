@@ -1,4 +1,4 @@
-import { dirname as getDirname, join as joinPath } from "node:path";
+import { dirname as getDirname, join as joinPath, basename as getBasename } from "node:path";
 import { readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
@@ -26,8 +26,9 @@ function main(inputFilename: string): void {
   const levels: IGame[] = [];
   parseLevels(levels, content);
 
-  const outputPath   : string = joinPath(__dirname, inputFilename.replace(".txt", ".ts"));
-  const outputContent: string = stringifyLevels(levels);
+  const inputBasename: string = getBasename(inputFilename, ".txt");
+  const outputPath   : string = joinPath(__dirname, inputBasename + ".ts");
+  const outputContent: string = stringifyLevels(levels, inputBasename);
   writeFileSync(outputPath, outputContent, { encoding: "utf8" });
 }
 
@@ -125,11 +126,11 @@ function eatEOL(content: string, pos: number): number {
   return pos;
 }
 
-function stringifyLevels(levels: IGame[]): string {
+function stringifyLevels(levels: IGame[], inputBasename: string): string {
   return "" +
     'import { type IGame } from "./game-engine.ts";\n' +
     "\n" +
-    "export const levels: IGame[] = [{\n" +
+    `export const ${toCamelCase(inputBasename)}: IGame[] = [{\n` +
     levels.map((level: IGame): string => "" +
     `    id   : ${level.id},\n` +
     `    hero : {s: ${level.hero.s}, e: ${level.hero.e}},\n` +
@@ -138,4 +139,20 @@ function stringifyLevels(levels: IGame[]): string {
            level.map.map((line: string): string => `      "${line}",`).join("\n") + "\n" +
     "  ]").join("}, {\n") + "},\n" +
     "];\n";
+}
+
+function toCamelCase(text :string): string {
+  const out: string[] = [];
+
+  for (let i = 0, convert = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (ch === "-" || ch === "_") {
+      convert = 1;
+    } else {
+      out.push(convert === 1 ? ch.toUpperCase() : ch);
+      convert = 0;
+    }
+  }
+
+  return out.join("");
 }
