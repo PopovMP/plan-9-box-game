@@ -14,6 +14,6 @@
     "check": "tsc --build",
     "lint": "eslint",
     "parse": "node parser.ts",
-    "bundle": "esbuild index.ts --bundle --global-name=App --platform=browser --sourcemap --log-level=warning --outfile=../index.js"
+    "bundle": "esbuild application.ts --bundle --global-name=App --platform=browser --sourcemap --log-level=warning --outfile=./index.js"
   }
 }

@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Plan 9 Box Game</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <h1>Plan 9 Box Game</h1>
+  <h2>Level <span id="level-id">1</span></h2>
+
+  <canvas id="game-board"></canvas>
+
+  <h2>Commands</h2>
+  <ul>
+    <li><strong>Zoom in</strong> -  <kbd>+</kbd></li>
+    <li><strong>Zoom out</strong> - <kbd>-</kbd></li>
+  </ul>
+
+  <script src="index.js"></script>
+  <script>
+    window.addEventListener("DOMContentLoaded", () => void App.main() );
+  </script>
+</body>
+</html>
