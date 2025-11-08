@@ -43,6 +43,7 @@ function parseLevels(levels: IGame[], content: string): void {
     };
 
     pos = parseLevel(level, content, pos);
+    level.map = normalizeLevelMap(level.map);
 
     levels.push(level);
   }
@@ -126,6 +127,75 @@ function eatEOL(content: string, pos: number): number {
   if (content[pos] === "\n") pos++;
 
   return pos;
+}
+
+function normalizeLevelMap(gameMap: string[]): string[] {
+  let mapWidth = 0;
+  for (const line of gameMap) {
+    if (line.length > mapWidth) {
+      mapWidth = line.length;
+    }
+  }
+
+  const flagMap: boolean[][] = new Array(gameMap.length);
+  for (let i = 0; i < gameMap.length; i++) {
+    flagMap[i] = new Array(mapWidth).fill(true);
+  }
+
+  let isChanged;
+  do {
+    isChanged = false;
+    for (let i = 0; i < gameMap.length; i++) {
+      for (let j = 0; j < mapWidth; j++) {
+        if (!flagMap[i][j]) continue;
+
+        // If out of map line
+        if (j >= gameMap[i].length) {
+          flagMap[i][j] = false;
+          isChanged = true;
+          continue;
+        }
+
+        if (gameMap[i][j] !== " ") continue;
+
+        // If first or last line
+        if (i === 0 || i === gameMap.length - 1) {
+          flagMap[i][j] = false;
+          isChanged = true;
+          continue;
+        }
+
+        // If first or last char in line
+        if (j === 0 || j === mapWidth - 1) {
+          flagMap[i][j] = false;
+          isChanged = true;
+          continue;
+        }
+
+        // Is touching empty cell
+        if (
+          !flagMap[i-1][j-1] || !flagMap[i-1][j] || !flagMap[i-1][j+1] ||
+          !flagMap[i  ][j-1] ||                     !flagMap[i  ][j+1] ||
+          !flagMap[i+1][j-1] || !flagMap[i+1][j] || !flagMap[i+1][j+1]
+        ) {
+          flagMap[i][j] = false;
+          isChanged = true;
+          continue;
+        }
+      }
+    }
+  } while (isChanged);
+
+  const outMap: string[] = [];
+  for (let i = 0; i < gameMap.length; i++) {
+    const line: string[] = new Array(mapWidth);
+    for (let j = 0; j < mapWidth; j++) {
+      line[j] = flagMap[i][j] ? gameMap[i][j] : "_";
+    }
+    outMap[i] = line.join("");
+  }
+
+  return outMap;
 }
 
 function stringifyLevels(levels: IGame[], inputBasename: string): string {
