@@ -41,53 +41,50 @@ export function main(): void {
   }
 
   function render(): void {
-    view.ctx.fillStyle = "#f4f0dcff";
+    view.ctx.fillStyle = "#DED6AE";
     view.ctx.fillRect(0, 0, view.ctx.canvas.width, view.ctx.canvas.height);
 
-    const tileH = Math.round(scale * TILE_HEIGHT);
-    const tileW = Math.round(scale * TILE_WIDTH );
+    const tileH = scale * TILE_HEIGHT;
+    const tileW = scale * TILE_WIDTH;
     view.ctx.textBaseline = "middle";
     view.ctx.textAlign    = "center"
-    view.ctx.font         = tileH + "px Arial";
+    view.ctx.font         = Math.round(tileH - 4) + "px Sansserif";
 
     for (let s = 0; s < game.map.length; s++) {
     for (let e = 0; e < game.map[s].length; e++) {
-      const landChar: string = game.map[s][e];
-      const tileX = Math.round(scale * e * TILE_WIDTH);
-      const tileY = Math.round(scale * s * TILE_HEIGHT);
+      const tileX   = Math.round(scale * e * TILE_WIDTH);
+      const tileY   = Math.round(scale * s * TILE_HEIGHT);
+      const tileMid = Math.round(tileW / 2);
 
       // Draw map
-      switch (landChar) {
-        case "#":
-          view.ctx.fillStyle = "#A19555";
+      switch (game.map[s][e]) {
+        case "#": // Wall
+          view.ctx.fillStyle = "#bbbbbb";
           view.ctx.fillRect(tileX, tileY, tileW, tileH);
-          view.ctx.fillStyle = "#444024";
-          view.ctx.fillText("#", tileX + Math.round(tileW / 2), tileY + Math.round(tileH / 2));
+          view.ctx.fillText("🧱", tileX + tileMid, tileY + tileMid + 2);
           break;
-        case " ":
-          view.ctx.fillStyle = "#DED6AE";
-          view.ctx.fillRect(tileX, tileY, tileW, tileH);
+        case " ": // Floor
+          view.ctx.fillStyle = "#C5BE9A";
+          view.ctx.fillText("·", tileX + tileMid, tileY + tileMid + 3);
           break;
-        case ".":
-          view.ctx.fillStyle = "#DED6AE";
-          view.ctx.fillRect(tileX, tileY, tileW, tileH);
-          view.ctx.fillStyle = "#D69585";
-          view.ctx.fillRect(tileX+5, tileY+5, tileW-10, tileH-10);
+        case ".": // Goal
+          view.ctx.fillStyle = "#67b4ef";
+          view.ctx.fillRect(tileX+3, tileY+3, tileW-6, tileH-6);
+          view.ctx.fillStyle = "#3d6787";
+          view.ctx.fillText("·", tileX + tileMid, tileY + tileMid + 3);
           break;
       }
     }}
 
     // Draw hero
-    view.ctx.fillStyle = "#aa6100";
-    view.ctx.fillText("@", Math.round(scale * game.hero.e * TILE_WIDTH  + (tileW / 2)),
-                           Math.round(scale * game.hero.s * TILE_HEIGHT + (tileH / 2)));
+    view.ctx.fillText("🧑‍🏭", Math.round(scale * game.hero.e * TILE_WIDTH  + (tileW / 2)),
+                            Math.round(scale * game.hero.s * TILE_HEIGHT + (tileH / 2)) + 2);
 
     // Draw boxes
     for (let i = 0; i < game.boxes.length; i++) {
       const tileX = Math.round(scale * game.boxes[i].e * TILE_WIDTH);
       const tileY = Math.round(scale * game.boxes[i].s * TILE_HEIGHT);
-      view.ctx.fillStyle = "#aa0009";
-      view.ctx.fillText("$", tileX + Math.round(tileW / 2), tileY + Math.round(tileH / 2));
+      view.ctx.fillText("📦", tileX + Math.round(tileW / 2), tileY + Math.round(tileH / 2) + 2);
     }
   }
 
