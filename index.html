@@ -7,16 +7,22 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <h1>Plan 9 Box Game</h1>
-  <h2>Level <span id="level-id">1</span> <span id="level-solved"></span></h2>
+  <div id="container">
+    <h1>Plan 9 Box Game</h1>
+    <h2>Level <span id="level-id">1</span> <span id="level-solved"></span></h2>
 
-  <canvas id="game-board"></canvas>
+    <div id="canvas-holder">
+      <canvas id="game-board"></canvas>
+    </div>
 
-  <h2>Commands</h2>
-  <ul>
-    <li><strong>Zoom in/out</strong>: <kbd>+</kbd>/<kbd>-</kbd></li>
-    <li><strong>Next/prev level</strong>: <kbd>Ctrl</kbd>+<kbd>Up</kbd> / <kbd>Ctrl</kbd>+<kbd>Down</kbd></li>
-  </ul>
+    <h2>Commands</h2>
+    <ul>
+      <li><strong>Zoom in/out</strong>: <kbd>+</kbd>/<kbd>-</kbd></li>
+      <li><strong>Next/prev level</strong>: <kbd>Ctrl</kbd>+<kbd>Up</kbd> / <kbd>Ctrl</kbd>+<kbd>Down</kbd></li>
+    </ul>
+    <h3>Levels courtesy of Plan 9</h3>
+    <p><a href="https://plan9.io/plan9/">Plan 9 from Bell Labs</a></p>
+  </div>
 
   <script src="index.js"></script>
   <script>
