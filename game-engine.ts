@@ -10,6 +10,12 @@ export interface IGame {
   map  : string[],
 }
 
+export interface IGameModel {
+  scale         : number;
+  currentLevelId: number;
+  solvedLevelIds: number[];
+}
+
 function isPointEq(p1: IPoint, p2: IPoint): boolean {
   return p1.s === p2.s && p1.e === p2.e;
 }
@@ -86,4 +92,32 @@ export function isSolved(game: IGame): boolean {
   }
 
   return true;
+}
+
+export function storeGame(model: IGameModel): void {
+  const modelTxt: string = JSON.stringify(model);
+  localStorage.setItem("plan-9-box-game", modelTxt);
+}
+
+export function loadGame(): IGameModel {
+  const model: IGameModel = {
+    scale         : 1.0,
+    currentLevelId: 0,
+    solvedLevelIds: [],
+  };
+
+  const modelTxt: string|null = localStorage.getItem("plan-9-box-game");
+
+  if (typeof modelTxt === "string") {
+    try {
+      const modelDto: IGameModel  = JSON.parse(modelTxt);
+      model.scale          = modelDto.scale;
+      model.currentLevelId = modelDto.currentLevelId;
+      model.solvedLevelIds = modelDto.solvedLevelIds.slice();
+    } catch {
+      // skip
+    }
+  }
+
+  return model;
 }

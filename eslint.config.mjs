@@ -34,6 +34,7 @@ export default defineConfig(
         console         : "readonly",
         addEventListener: "readonly",
         structuredClone : "readonly",
+        localStorage    : "readonly",
       },
     },
     rules: {

@@ -83,6 +83,28 @@ var App = (() => {
     }
     return true;
   }
+  function storeGame(model) {
+    const modelTxt = JSON.stringify(model);
+    localStorage.setItem("plan-9-box-game", modelTxt);
+  }
+  function loadGame() {
+    const model = {
+      scale: 1,
+      currentLevelId: 0,
+      solvedLevelIds: []
+    };
+    const modelTxt = localStorage.getItem("plan-9-box-game");
+    if (typeof modelTxt === "string") {
+      try {
+        const modelDto = JSON.parse(modelTxt);
+        model.scale = modelDto.scale;
+        model.currentLevelId = modelDto.currentLevelId;
+        model.solvedLevelIds = modelDto.solvedLevelIds.slice();
+      } catch {
+      }
+    }
+    return model;
+  }
 
   // easy-levels.ts
   var easyLevels = [
@@ -2183,15 +2205,14 @@ var App = (() => {
     const TILE_WIDTH = 32;
     const TILE_HEIGHT = 32;
     const levels = easyLevels;
+    const model = loadGame();
     const view = {};
     view.board = document.getElementById("game-board");
     view.ctx = view.board.getContext("2d");
     view.levelId = document.getElementById("level-id");
     view.solved = document.getElementById("level-solved");
-    let scale = 1;
-    let level = 0;
     let game;
-    setLevel(0);
+    setLevel(model.currentLevelId);
     addEventListener("keydown", onKeyDown);
     function scaleCanvas() {
       const mapTileHeight = game.map.length;
@@ -2201,23 +2222,23 @@ var App = (() => {
           mapTileWidth = line.length;
         }
       }
-      const canvasWidth = Math.round(scale * TILE_WIDTH * mapTileWidth);
-      const canvasHeight = Math.round(scale * TILE_HEIGHT * mapTileHeight);
+      const canvasWidth = Math.round(model.scale * TILE_WIDTH * mapTileWidth);
+      const canvasHeight = Math.round(model.scale * TILE_HEIGHT * mapTileHeight);
       view.board.width = canvasWidth;
       view.board.height = canvasHeight;
     }
     function render() {
       view.ctx.fillStyle = "#DED6AE";
       view.ctx.fillRect(0, 0, view.ctx.canvas.width, view.ctx.canvas.height);
-      const tileH = scale * TILE_HEIGHT;
-      const tileW = scale * TILE_WIDTH;
+      const tileH = model.scale * TILE_HEIGHT;
+      const tileW = model.scale * TILE_WIDTH;
       view.ctx.textBaseline = "middle";
       view.ctx.textAlign = "center";
       view.ctx.font = Math.round(tileH - 4) + "px Sansserif";
       for (let s = 0; s < game.map.length; s++) {
         for (let e = 0; e < game.map[s].length; e++) {
-          const tileX = Math.round(scale * e * TILE_WIDTH);
-          const tileY = Math.round(scale * s * TILE_HEIGHT);
+          const tileX = Math.round(model.scale * e * TILE_WIDTH);
+          const tileY = Math.round(model.scale * s * TILE_HEIGHT);
           const tileMid = Math.round(tileW / 2);
           switch (game.map[s][e]) {
             case "#":
@@ -2240,45 +2261,55 @@ var App = (() => {
       }
       view.ctx.fillText(
         "\u{1F9D1}\u200D\u{1F3ED}",
-        Math.round(scale * game.hero.e * TILE_WIDTH + tileW / 2),
-        Math.round(scale * game.hero.s * TILE_HEIGHT + tileH / 2) + 2
+        Math.round(model.scale * game.hero.e * TILE_WIDTH + tileW / 2),
+        Math.round(model.scale * game.hero.s * TILE_HEIGHT + tileH / 2) + 2
       );
       for (const box of game.boxes) {
-        const tileX = Math.round(scale * box.e * TILE_WIDTH);
-        const tileY = Math.round(scale * box.s * TILE_HEIGHT);
+        const tileX = Math.round(model.scale * box.e * TILE_WIDTH);
+        const tileY = Math.round(model.scale * box.s * TILE_HEIGHT);
         view.ctx.fillText("\u{1F4E6}", tileX + Math.round(tileW / 2), tileY + Math.round(tileH / 2) + 2);
       }
     }
     function setLevel(id) {
-      level = id;
-      game = structuredClone(levels[level]);
+      model.currentLevelId = id;
+      game = structuredClone(levels[model.currentLevelId]);
       view.solved.textContent = "";
-      view.levelId.textContent = (id + 1).toString();
+      view.levelId.textContent = (model.currentLevelId + 1).toString();
+      if (model.solvedLevelIds.includes(model.currentLevelId)) {
+        view.solved.textContent = "Solved";
+      }
       scaleCanvas();
       render();
+      storeGame(model);
     }
     function markGameSolved() {
       view.solved.textContent = "Solved";
+      if (!model.solvedLevelIds.includes(model.currentLevelId)) {
+        model.solvedLevelIds.push(model.currentLevelId);
+        storeGame(model);
+      }
     }
     function onKeyDown(event) {
       switch (event.key) {
         case "+":
-          if (scale < 3) scale += 0.2;
+          if (model.scale < 3) model.scale += 0.2;
           event.preventDefault();
           scaleCanvas();
           render();
+          storeGame(model);
           break;
         case "-":
-          if (scale > 0.4) scale -= 0.2;
+          if (model.scale > 0.4) model.scale -= 0.2;
           event.preventDefault();
           scaleCanvas();
           render();
+          storeGame(model);
           break;
         case "ArrowUp":
           if (event.ctrlKey) {
-            level++;
-            if (level >= levels.length) level = levels.length - 1;
-            setLevel(level);
+            if (model.currentLevelId < levels.length - 1) {
+              setLevel(model.currentLevelId + 1);
+            }
             return;
           }
           if (canMove(game, -1, 0)) {
@@ -2300,9 +2331,9 @@ var App = (() => {
           break;
         case "ArrowDown":
           if (event.ctrlKey) {
-            level--;
-            if (level < 0) level = 0;
-            setLevel(level);
+            if (model.currentLevelId > 0) {
+              setLevel(model.currentLevelId - 1);
+            }
             return;
           }
           if (canMove(game, 1, 0)) {

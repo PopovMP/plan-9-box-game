@@ -1,4 +1,4 @@
-import { type IGame, canMove, doMove, isSolved } from "./game-engine.ts";
+import { type IGame, type IGameModel, canMove, doMove, isSolved, loadGame, storeGame } from "./game-engine.ts";
 import { easyLevels } from "./easy-levels.ts";
 
 interface IView {
@@ -11,7 +11,8 @@ interface IView {
 export function main(): void {
   const TILE_WIDTH  = 32;
   const TILE_HEIGHT = 32;
-  const levels: IGame[] = easyLevels;
+  const levels: IGame[]    = easyLevels;
+  const model : IGameModel = loadGame();
 
   const view: IView = { } as IView;
   view.board   = document.getElementById("game-board") as HTMLCanvasElement;
@@ -19,11 +20,9 @@ export function main(): void {
   view.levelId = document.getElementById("level-id") as HTMLElement;
   view.solved  = document.getElementById("level-solved") as HTMLElement;
 
-  let scale = 1.0;
-  let level = 0;
   let game: IGame;
 
-  setLevel(0);
+  setLevel(model.currentLevelId);
   addEventListener("keydown", onKeyDown);
 
   function scaleCanvas(): void{
@@ -35,8 +34,8 @@ export function main(): void {
       }
     }
 
-    const canvasWidth  = Math.round(scale * TILE_WIDTH  * mapTileWidth);
-    const canvasHeight = Math.round(scale * TILE_HEIGHT * mapTileHeight);
+    const canvasWidth  = Math.round(model.scale * TILE_WIDTH  * mapTileWidth);
+    const canvasHeight = Math.round(model.scale * TILE_HEIGHT * mapTileHeight);
 
     view.board.width  = canvasWidth;
     view.board.height = canvasHeight;
@@ -46,16 +45,16 @@ export function main(): void {
     view.ctx.fillStyle = "#DED6AE";
     view.ctx.fillRect(0, 0, view.ctx.canvas.width, view.ctx.canvas.height);
 
-    const tileH = scale * TILE_HEIGHT;
-    const tileW = scale * TILE_WIDTH;
+    const tileH = model.scale * TILE_HEIGHT;
+    const tileW = model.scale * TILE_WIDTH;
     view.ctx.textBaseline = "middle";
     view.ctx.textAlign    = "center";
     view.ctx.font         = Math.round(tileH - 4) + "px Sansserif";
 
     for (let s = 0; s < game.map.length; s++) {
     for (let e = 0; e < game.map[s].length; e++) {
-      const tileX   = Math.round(scale * e * TILE_WIDTH);
-      const tileY   = Math.round(scale * s * TILE_HEIGHT);
+      const tileX   = Math.round(model.scale * e * TILE_WIDTH);
+      const tileY   = Math.round(model.scale * s * TILE_HEIGHT);
       const tileMid = Math.round(tileW / 2);
 
       // Draw map
@@ -79,49 +78,59 @@ export function main(): void {
     }}
 
     // Draw hero
-    view.ctx.fillText("🧑‍🏭", Math.round(scale * game.hero.e * TILE_WIDTH  + (tileW / 2)),
-                            Math.round(scale * game.hero.s * TILE_HEIGHT + (tileH / 2)) + 2);
+    view.ctx.fillText("🧑‍🏭", Math.round(model.scale * game.hero.e * TILE_WIDTH  + (tileW / 2)),
+                            Math.round(model.scale * game.hero.s * TILE_HEIGHT + (tileH / 2)) + 2);
 
     // Draw boxes
     for (const box of game.boxes) {
-      const tileX = Math.round(scale * box.e * TILE_WIDTH);
-      const tileY = Math.round(scale * box.s * TILE_HEIGHT);
+      const tileX = Math.round(model.scale * box.e * TILE_WIDTH);
+      const tileY = Math.round(model.scale * box.s * TILE_HEIGHT);
       view.ctx.fillText("📦", tileX + Math.round(tileW / 2), tileY + Math.round(tileH / 2) + 2);
     }
   }
 
   function setLevel(id: number): void {
-    level = id;
-    game = structuredClone(levels[level]);
+    model.currentLevelId = id;
+    game = structuredClone(levels[model.currentLevelId]);
     view.solved.textContent = "";
-    view.levelId.textContent = (id + 1).toString();
+    view.levelId.textContent = (model.currentLevelId + 1).toString();
+    if (model.solvedLevelIds.includes(model.currentLevelId)) {
+      view.solved.textContent = "Solved";
+    }
     scaleCanvas();
     render();
+    storeGame(model);
   }
 
   function markGameSolved(): void {
     view.solved.textContent = "Solved";
+    if (!model.solvedLevelIds.includes(model.currentLevelId)) {
+      model.solvedLevelIds.push(model.currentLevelId);
+      storeGame(model);
+    }
   }
 
   function onKeyDown(event: KeyboardEvent): void {
     switch (event.key) {
       case "+":
-        if (scale < 3) scale += 0.2;
+        if (model.scale < 3) model.scale += 0.2;
         event.preventDefault();
         scaleCanvas();
         render();
+        storeGame(model);
         break;
       case "-":
-        if (scale > 0.4) scale -= 0.2;
+        if (model.scale > 0.4) model.scale -= 0.2;
         event.preventDefault();
         scaleCanvas();
         render();
+        storeGame(model);
         break;
       case "ArrowUp":
         if (event.ctrlKey) {
-          level++;
-          if (level >= levels.length) level = levels.length - 1;
-          setLevel(level);
+          if (model.currentLevelId < levels.length - 1) {
+            setLevel(model.currentLevelId + 1);
+          }
           return;
         }
 
@@ -144,9 +153,9 @@ export function main(): void {
         break;
       case "ArrowDown":
         if (event.ctrlKey) {
-          level--;
-          if (level < 0) level = 0;
-          setLevel(level);
+          if (model.currentLevelId > 0) {
+            setLevel(model.currentLevelId - 1);
+          }
           return;
         }
 
