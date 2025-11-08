@@ -64,8 +64,8 @@ function parseComment(level: IGame, content: string, pos: number): number {
   const zeroCharCode: number = "0".charCodeAt(0);
   const nineCharCode: number = "9".charCodeAt(0);
 
-  for (; isGoodChar(content, pos); pos++, ch = content[pos]) {
-    const charCode: number = ch.charCodeAt(0);
+  for (; isGoodChar(content, pos); pos++) {
+    const charCode: number = content[pos].charCodeAt(0);
     if (charCode >= zeroCharCode && charCode <= nineCharCode) {
       const digit: number = charCode - zeroCharCode;
       level.id = 10 * level.id + digit;
@@ -80,7 +80,9 @@ function parseMapLine(level: IGame, content: string, pos: number): number {
   if (ch !== " " && ch !== "#") throw new Error(`Expecting ' ' or '#' at pos: ${pos}`);
 
   const chars: string[] = [];
-  for (let south = level.map.length, east = 0; isGoodChar(content, pos); east++, pos++, ch = content[pos]) {
+  const south: number   = level.map.length;
+  for (let east = 0; isGoodChar(content, pos); east++, pos++) {
+    ch = content[pos];
     switch (ch) {
       case "@":
         level.hero = {s: south, e: east};
