@@ -27,6 +27,14 @@ export default defineConfig(
         project        : "./tsconfig.json",
         tsconfigRootDir: import.meta.dirname,
       },
+      globals: {
+        // Browser globals
+        window          : "readonly",
+        document        : "readonly",
+        console         : "readonly",
+        addEventListener: "readonly",
+        structuredClone : "readonly",
+      },
     },
     rules: {
       "comma-dangle"        : ["error", "always-multiline"],

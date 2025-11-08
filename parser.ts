@@ -59,7 +59,7 @@ function parseLevel(level: IGame, content: string, pos: number): number {
 }
 
 function parseComment(level: IGame, content: string, pos: number): number {
-  let ch: string = content[pos];
+  const ch: string = content[pos];
   if (ch !== ";") throw new Error(`Expecting ';' at pos ${pos}`);
   const zeroCharCode: number = "0".charCodeAt(0);
   const nineCharCode: number = "9".charCodeAt(0);

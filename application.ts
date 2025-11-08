@@ -27,9 +27,9 @@ export function main(): void {
   function scaleCanvas(): void{
     const mapTileHeight = game.map.length;
     let mapTileWidth  = 0;
-    for (let i = 0; i < game.map.length; i++) {
-      if (game.map[i].length > mapTileWidth) {
-        mapTileWidth = game.map[i].length;
+    for (const line of game.map) {
+      if (line.length > mapTileWidth) {
+        mapTileWidth = line.length;
       }
     }
 
@@ -47,7 +47,7 @@ export function main(): void {
     const tileH = scale * TILE_HEIGHT;
     const tileW = scale * TILE_WIDTH;
     view.ctx.textBaseline = "middle";
-    view.ctx.textAlign    = "center"
+    view.ctx.textAlign    = "center";
     view.ctx.font         = Math.round(tileH - 4) + "px Sansserif";
 
     for (let s = 0; s < game.map.length; s++) {
@@ -81,9 +81,9 @@ export function main(): void {
                             Math.round(scale * game.hero.s * TILE_HEIGHT + (tileH / 2)) + 2);
 
     // Draw boxes
-    for (let i = 0; i < game.boxes.length; i++) {
-      const tileX = Math.round(scale * game.boxes[i].e * TILE_WIDTH);
-      const tileY = Math.round(scale * game.boxes[i].s * TILE_HEIGHT);
+    for (const box of game.boxes) {
+      const tileX = Math.round(scale * box.e * TILE_WIDTH);
+      const tileY = Math.round(scale * box.s * TILE_HEIGHT);
       view.ctx.fillText("📦", tileX + Math.round(tileW / 2), tileY + Math.round(tileH / 2) + 2);
     }
   }

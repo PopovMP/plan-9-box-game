@@ -25,6 +25,24 @@ var App = (() => {
   });
 
   // game-engine.ts
+  function isPointEq(p1, p2) {
+    return p1.s === p2.s && p1.e === p2.e;
+  }
+  function makePointNext(point, ds, de) {
+    return { s: point.s + ds, e: point.e + de };
+  }
+  function movePoint(point, ds, de) {
+    point.s += ds;
+    point.e += de;
+  }
+  function moveBox(game, fromPos, ds, de) {
+    for (const box of game.boxes) {
+      if (isPointEq(box, fromPos)) {
+        movePoint(box, ds, de);
+        break;
+      }
+    }
+  }
   function getMapCharAt(game, pos) {
     if (pos.s >= 0 && pos.s < game.map.length && pos.e >= 0 && pos.e < game.map[pos.s].length) {
       return game.map[pos.s][pos.e];
@@ -32,17 +50,16 @@ var App = (() => {
     return "";
   }
   function isBoxAt(game, pos) {
-    for (let i = 0; i < game.boxes.length; i++) {
-      const box = game.boxes[i];
-      if (box.s === pos.s && box.e === pos.e) {
+    for (const box of game.boxes) {
+      if (isPointEq(box, pos)) {
         return true;
       }
     }
     return false;
   }
   function canMove(game, ds, de) {
-    const posNext = { s: game.hero.s + ds, e: game.hero.e + de };
-    const posNexter = { s: game.hero.s + 2 * ds, e: game.hero.e + 2 * de };
+    const posNext = makePointNext(game.hero, ds, de);
+    const posNexter = makePointNext(posNext, ds, de);
     const nextChar = getMapCharAt(game, posNext);
     const nexterChar = getMapCharAt(game, posNexter);
     if (nextChar === " " || nextChar === ".") {
@@ -54,17 +71,9 @@ var App = (() => {
     return false;
   }
   function doMove(game, ds, de) {
-    const posNext = { s: game.hero.s + ds, e: game.hero.e + de };
-    for (let i = 0; i < game.boxes.length; i++) {
-      const box = game.boxes[i];
-      if (box.s === posNext.s && box.e === posNext.e) {
-        box.s += ds;
-        box.e += de;
-        break;
-      }
-    }
-    game.hero.s += ds;
-    game.hero.e += de;
+    const posNext = makePointNext(game.hero, ds, de);
+    moveBox(game, posNext, ds, de);
+    movePoint(game.hero, ds, de);
   }
 
   // easy-levels.ts
@@ -2178,9 +2187,9 @@ var App = (() => {
     function scaleCanvas() {
       const mapTileHeight = game.map.length;
       let mapTileWidth = 0;
-      for (let i = 0; i < game.map.length; i++) {
-        if (game.map[i].length > mapTileWidth) {
-          mapTileWidth = game.map[i].length;
+      for (const line of game.map) {
+        if (line.length > mapTileWidth) {
+          mapTileWidth = line.length;
         }
       }
       const canvasWidth = Math.round(scale * TILE_WIDTH * mapTileWidth);
@@ -2225,9 +2234,9 @@ var App = (() => {
         Math.round(scale * game.hero.e * TILE_WIDTH + tileW / 2),
         Math.round(scale * game.hero.s * TILE_HEIGHT + tileH / 2) + 2
       );
-      for (let i = 0; i < game.boxes.length; i++) {
-        const tileX = Math.round(scale * game.boxes[i].e * TILE_WIDTH);
-        const tileY = Math.round(scale * game.boxes[i].s * TILE_HEIGHT);
+      for (const box of game.boxes) {
+        const tileX = Math.round(scale * box.e * TILE_WIDTH);
+        const tileY = Math.round(scale * box.s * TILE_HEIGHT);
         view.ctx.fillText("\u{1F4E6}", tileX + Math.round(tileW / 2), tileY + Math.round(tileH / 2) + 2);
       }
     }
