@@ -2292,6 +2292,7 @@ var App = (() => {
     function onKeyDown(event) {
       switch (event.key) {
         case "+":
+        case "=":
           if (model.scale < 3) model.scale += 0.2;
           event.preventDefault();
           scaleCanvas();
