@@ -1,10 +1,11 @@
-import { type IGame, canMove, doMove } from "./game-engine.ts";
+import { type IGame, canMove, doMove, isSolved } from "./game-engine.ts";
 import { easyLevels } from "./easy-levels.ts";
 
 interface IView {
   board  : HTMLCanvasElement;
   ctx    : CanvasRenderingContext2D;
   levelId: HTMLElement;
+  solved : HTMLElement;
 }
 
 export function main(): void {
@@ -16,6 +17,7 @@ export function main(): void {
   view.board   = document.getElementById("game-board") as HTMLCanvasElement;
   view.ctx     = view.board.getContext("2d") as CanvasRenderingContext2D;
   view.levelId = document.getElementById("level-id") as HTMLElement;
+  view.solved  = document.getElementById("level-solved") as HTMLElement;
 
   let scale = 1.0;
   let level = 0;
@@ -91,9 +93,14 @@ export function main(): void {
   function setLevel(id: number): void {
     level = id;
     game = structuredClone(levels[level]);
+    view.solved.textContent = "";
     view.levelId.textContent = (id + 1).toString();
     scaleCanvas();
     render();
+  }
+
+  function markGameSolved(): void {
+    view.solved.textContent = "Solved";
   }
 
   function onKeyDown(event: KeyboardEvent): void {
@@ -148,6 +155,10 @@ export function main(): void {
           render();
         }
         break;
+    }
+
+    if (isSolved(game)) {
+      markGameSolved();
     }
   }
 }

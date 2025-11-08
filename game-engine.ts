@@ -77,3 +77,13 @@ export function doMove(game: IGame, ds: number, de: number): void {
   moveBox(game, posNext, ds, de);
   movePoint(game.hero, ds, de);
 }
+
+export function isSolved(game: IGame): boolean {
+  for (const box of game.boxes) {
+    if (getMapCharAt(game, box) !== ".") {
+      return false;
+    }
+  }
+
+  return true;
+}

@@ -75,6 +75,14 @@ var App = (() => {
     moveBox(game, posNext, ds, de);
     movePoint(game.hero, ds, de);
   }
+  function isSolved(game) {
+    for (const box of game.boxes) {
+      if (getMapCharAt(game, box) !== ".") {
+        return false;
+      }
+    }
+    return true;
+  }
 
   // easy-levels.ts
   var easyLevels = [
@@ -2179,6 +2187,7 @@ var App = (() => {
     view.board = document.getElementById("game-board");
     view.ctx = view.board.getContext("2d");
     view.levelId = document.getElementById("level-id");
+    view.solved = document.getElementById("level-solved");
     let scale = 1;
     let level = 0;
     let game;
@@ -2243,9 +2252,13 @@ var App = (() => {
     function setLevel(id) {
       level = id;
       game = structuredClone(levels[level]);
+      view.solved.textContent = "";
       view.levelId.textContent = (id + 1).toString();
       scaleCanvas();
       render();
+    }
+    function markGameSolved() {
+      view.solved.textContent = "Solved";
     }
     function onKeyDown(event) {
       switch (event.key) {
@@ -2297,6 +2310,9 @@ var App = (() => {
             render();
           }
           break;
+      }
+      if (isSolved(game)) {
+        markGameSolved();
       }
     }
   }
