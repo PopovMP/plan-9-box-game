@@ -2271,9 +2271,9 @@ var App = (() => {
               view.ctx.fillText("\xB7", tileX + tileMid, tileY + tileMid + 3);
               break;
             case ".":
-              view.ctx.fillStyle = "#21b200ff";
+              view.ctx.fillStyle = "#5bbf44";
               view.ctx.fillRect(tileX + 3, tileY + 3, tileW - 6, tileH - 6);
-              view.ctx.fillStyle = "#146e00ff";
+              view.ctx.fillStyle = "#146e00";
               view.ctx.fillText("\xB7", tileX + tileMid, tileY + tileMid + 3);
               break;
           }
