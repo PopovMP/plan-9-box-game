@@ -2,9 +2,25 @@ body {
   background-color: #DED6AE;
 }
 
+a {
+  text-decoration: none;
+}
+
 #container {
-  display: flex;
+  display       : flex;
   flex-direction: column;
-  align-items: center;
-  flex-wrap: wrap;
+  flex-wrap     : wrap;
+  align-items   : center;
+}
+
+.d-none {
+  display: none;
+}
+
+.d-block {
+  display: block;
+}
+
+.d-inline-block {
+  display: inline-block;
 }

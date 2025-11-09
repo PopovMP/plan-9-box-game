@@ -35,6 +35,7 @@ export default defineConfig(
         addEventListener: "readonly",
         structuredClone : "readonly",
         localStorage    : "readonly",
+        setTimeout      : "readonly",
       },
     },
     rules: {

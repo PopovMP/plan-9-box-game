@@ -89,17 +89,27 @@ var App = (() => {
   }
   function loadGame() {
     const model = {
-      scale: 1,
-      currentLevelId: 0,
-      solvedLevelIds: []
+      scale: 1.4,
+      levelId: 0,
+      solvedIds: [],
+      replays: []
     };
     const modelTxt = localStorage.getItem("plan-9-box-game");
     if (typeof modelTxt === "string") {
       try {
         const modelDto = JSON.parse(modelTxt);
-        model.scale = modelDto.scale;
-        model.currentLevelId = modelDto.currentLevelId;
-        model.solvedLevelIds = modelDto.solvedLevelIds.slice();
+        if (typeof modelDto.scale === "number") {
+          model.scale = modelDto.scale;
+        }
+        if (typeof modelDto.levelId === "number") {
+          model.levelId = modelDto.levelId;
+        }
+        if (Array.isArray(modelDto.solvedIds)) {
+          model.solvedIds = modelDto.solvedIds.slice();
+        }
+        if (Array.isArray(modelDto.replays)) {
+          model.replays = structuredClone(modelDto.replays);
+        }
       } catch {
       }
     }
@@ -2206,14 +2216,23 @@ var App = (() => {
     const TILE_HEIGHT = 32;
     const levels = easyLevels;
     const model = loadGame();
-    const view = {};
-    view.board = document.getElementById("game-board");
+    const replay = [];
+    const view = {
+      board: document.getElementById("game-board"),
+      levelId: document.getElementById("level-id"),
+      solved: document.getElementById("level-solved"),
+      replay: document.getElementById("level-replay"),
+      reset: document.getElementById("level-reset"),
+      next: document.getElementById("level-next")
+    };
     view.ctx = view.board.getContext("2d");
-    view.levelId = document.getElementById("level-id");
-    view.solved = document.getElementById("level-solved");
     let game;
-    setLevel(model.currentLevelId);
-    addEventListener("keydown", onKeyDown);
+    let isReplaying = false;
+    setLevel(model.levelId);
+    document.addEventListener("keydown", onKeyDown);
+    view.replay.addEventListener("click", onReplay);
+    view.reset.addEventListener("click", onReset);
+    view.next.addEventListener("click", onNext);
     function scaleCanvas() {
       const mapTileHeight = game.map.length;
       let mapTileWidth = 0;
@@ -2271,81 +2290,176 @@ var App = (() => {
       }
     }
     function setLevel(id) {
-      model.currentLevelId = id;
-      game = structuredClone(levels[model.currentLevelId]);
-      view.solved.textContent = "";
-      view.levelId.textContent = (model.currentLevelId + 1).toString();
-      if (model.solvedLevelIds.includes(model.currentLevelId)) {
-        view.solved.textContent = "Solved";
-      }
+      replay.length = 0;
+      model.levelId = id;
+      game = structuredClone(levels[model.levelId]);
+      view.levelId.textContent = (model.levelId + 1).toString();
+      storeGame(model);
+      setSolvedStyle();
+      setReplayStyle();
+      setNextStyle();
       scaleCanvas();
       render();
-      storeGame(model);
     }
     function markGameSolved() {
-      view.solved.textContent = "Solved";
-      if (!model.solvedLevelIds.includes(model.currentLevelId)) {
-        model.solvedLevelIds.push(model.currentLevelId);
-        storeGame(model);
+      if (!model.solvedIds.includes(model.levelId)) {
+        model.solvedIds.push(model.levelId);
+      }
+      model.replays[model.levelId] = replay.slice();
+      storeGame(model);
+      setSolvedStyle();
+      setReplayStyle();
+      setNextStyle();
+      showNext();
+    }
+    function setSolvedStyle() {
+      if (model.solvedIds.includes(model.levelId)) {
+        view.solved.classList.remove("d-none");
+        view.solved.classList.add("d-inline-block");
+      } else {
+        view.solved.classList.add("d-none");
+        view.solved.classList.remove("d-inline-block");
       }
     }
+    function setReplayStyle() {
+      if (model.solvedIds.includes(model.levelId) && Array.isArray(model.replays[model.levelId]) && model.replays[model.levelId].length > 0) {
+        view.replay.classList.remove("d-none");
+        view.replay.classList.add("d-inline-block");
+      } else {
+        hideReplay();
+      }
+    }
+    function setNextStyle() {
+      if (model.solvedIds.includes(model.levelId)) {
+        showNext();
+      } else {
+        view.next.classList.remove("d-inline-block");
+        view.next.classList.add("d-none");
+      }
+    }
+    function hideReplay() {
+      view.replay.classList.remove("d-inline-block");
+      view.replay.classList.add("d-none");
+    }
+    function showNext() {
+      view.next.classList.remove("d-none");
+      view.next.classList.add("d-inline-block");
+    }
     function onKeyDown(event) {
+      if (isReplaying) return;
       switch (event.key) {
         case "+":
         case "=":
-          if (model.scale < 3) model.scale += 0.2;
           event.preventDefault();
+          if (model.scale < 3) model.scale += 0.2;
           scaleCanvas();
           render();
           storeGame(model);
           break;
         case "-":
-          if (model.scale > 0.4) model.scale -= 0.2;
           event.preventDefault();
+          if (model.scale > 0.4) model.scale -= 0.2;
           scaleCanvas();
           render();
           storeGame(model);
           break;
         case "ArrowUp":
+          event.preventDefault();
           if (event.ctrlKey) {
-            if (model.currentLevelId < levels.length - 1) {
-              setLevel(model.currentLevelId + 1);
-            }
+            setLevel(Math.min(model.levelId + 1, levels.length - 1));
             return;
           }
           if (canMove(game, -1, 0)) {
             doMove(game, -1, 0);
             render();
+            replay.push(1 /* up */);
           }
           break;
         case "ArrowRight":
+          event.preventDefault();
           if (canMove(game, 0, 1)) {
             doMove(game, 0, 1);
             render();
+            replay.push(2 /* right */);
           }
           break;
         case "ArrowLeft":
+          event.preventDefault();
           if (canMove(game, 0, -1)) {
             doMove(game, 0, -1);
             render();
+            replay.push(3 /* left */);
           }
           break;
         case "ArrowDown":
+          event.preventDefault();
           if (event.ctrlKey) {
-            if (model.currentLevelId > 0) {
-              setLevel(model.currentLevelId - 1);
-            }
+            setLevel(Math.max(model.levelId - 1, 0));
             return;
           }
           if (canMove(game, 1, 0)) {
             doMove(game, 1, 0);
             render();
+            replay.push(4 /* down */);
           }
           break;
       }
       if (isSolved(game)) {
         markGameSolved();
       }
+    }
+    function onReplay(event) {
+      event.preventDefault();
+      if (isReplaying) return;
+      if (!Array.isArray(model.replays[model.levelId]) || model.replays[model.levelId].length === 0) return;
+      isReplaying = true;
+      game = structuredClone(levels[model.levelId]);
+      render();
+      const time_step = 200;
+      setTimeout(loop, time_step, 0);
+      function loop(i) {
+        if (i >= model.replays[model.levelId].length) {
+          isReplaying = false;
+          return;
+        }
+        switch (model.replays[model.levelId][i]) {
+          case 1 /* up */:
+            if (canMove(game, -1, 0)) {
+              doMove(game, -1, 0);
+              render();
+            }
+            break;
+          case 3 /* left */:
+            if (canMove(game, 0, -1)) {
+              doMove(game, 0, -1);
+              render();
+            }
+            break;
+          case 2 /* right */:
+            if (canMove(game, 0, 1)) {
+              doMove(game, 0, 1);
+              render();
+            }
+            break;
+          case 4 /* down */:
+            if (canMove(game, 1, 0)) {
+              doMove(game, 1, 0);
+              render();
+            }
+            break;
+        }
+        setTimeout(loop, time_step, i + 1);
+      }
+    }
+    function onReset(event) {
+      event.preventDefault();
+      if (isReplaying) return;
+      setLevel(model.levelId);
+    }
+    function onNext(event) {
+      event.preventDefault();
+      if (isReplaying) return;
+      setLevel(Math.min(model.levelId + 1, levels.length - 1));
     }
   }
   return __toCommonJS(application_exports);

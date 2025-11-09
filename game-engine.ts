@@ -12,8 +12,16 @@ export interface IGame {
 
 export interface IGameModel {
   scale         : number;
-  currentLevelId: number;
-  solvedLevelIds: number[];
+  levelId: number;
+  solvedIds: number[];
+  replays       : number[][];
+}
+
+export const enum EDir {
+  up    = 1,
+  right = 2,
+  left  = 3,
+  down  = 4,
 }
 
 function isPointEq(p1: IPoint, p2: IPoint): boolean {
@@ -101,19 +109,29 @@ export function storeGame(model: IGameModel): void {
 
 export function loadGame(): IGameModel {
   const model: IGameModel = {
-    scale         : 1.0,
-    currentLevelId: 0,
-    solvedLevelIds: [],
+    scale    : 1.4,
+    levelId  : 0,
+    solvedIds: [],
+    replays  : [],
   };
 
   const modelTxt: string|null = localStorage.getItem("plan-9-box-game");
 
   if (typeof modelTxt === "string") {
     try {
-      const modelDto: IGameModel  = JSON.parse(modelTxt);
-      model.scale          = modelDto.scale;
-      model.currentLevelId = modelDto.currentLevelId;
-      model.solvedLevelIds = modelDto.solvedLevelIds.slice();
+      const modelDto: IGameModel = JSON.parse(modelTxt);
+      if (typeof modelDto.scale === "number") {
+        model.scale = modelDto.scale;
+      }
+      if (typeof modelDto.levelId === "number") {
+        model.levelId = modelDto.levelId;
+      }
+      if (Array.isArray(modelDto.solvedIds)) {
+        model.solvedIds = modelDto.solvedIds.slice();
+      }
+      if (Array.isArray(modelDto.replays)) {
+        model.replays = structuredClone(modelDto.replays);
+      }
     } catch {
       // skip
     }
