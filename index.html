@@ -9,22 +9,27 @@
 <body>
   <div id="container">
     <h1>Plan 9 Box Game</h1>
-    <h2>Level <span id="level-id">1</span> <span class="d-none" id="level-solved">✅ Solved</span></h2>
-    <p>
-      <a class="d-none" href="#" id="level-replay">▶️ Replay</a>
-      <a href="#" id="level-reset">🔄 Reset</a>
-      <a class="d-none" href="#" id="level-next">⏩ Next</a>
-    </p>
+    <h2>Level <span id="level-id">1</span>
+        <span class="d-none btn" id="level-solved"><i class="ico">✅</i>Solved</span></h2>
 
     <div id="canvas-holder">
       <canvas id="game-board"></canvas>
     </div>
 
+    <p>
+      <a class="btn d-none" href="#" id="level-replay"><i class="ico">▶️</i>Replay</a>
+      <a class="btn"        href="#" id="level-reset" ><i class="ico">🔄</i>Reset </a>
+      <a class="btn d-none" href="#" id="level-next"  ><i class="ico">⏩</i>Next  </a>
+    </p>
+
+    <p id="game-info"></p>
+
     <ul>
       <li><strong>Zoom in/out</strong>: <kbd>+</kbd> / <kbd>-</kbd></li>
       <li><strong>Level next/prev</strong>: <kbd>Ctrl</kbd>+<kbd>Up</kbd> / <kbd>Ctrl</kbd>+<kbd>Down</kbd></li>
     </ul>
-    <h3>Levels courtesy of <a href="https://plan9.io/plan9/">Plan 9 from Bell Labs</a></h3>
+
+    <p>Levels courtesy of <a href="https://plan9.io/plan9/">Plan 9 from Bell Labs</a></p>
   </div>
 
   <script src="index.js"></script>

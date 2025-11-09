@@ -2223,7 +2223,8 @@ var App = (() => {
       solved: document.getElementById("level-solved"),
       replay: document.getElementById("level-replay"),
       reset: document.getElementById("level-reset"),
-      next: document.getElementById("level-next")
+      next: document.getElementById("level-next"),
+      info: document.getElementById("game-info")
     };
     view.ctx = view.board.getContext("2d");
     let game;
@@ -2270,9 +2271,9 @@ var App = (() => {
               view.ctx.fillText("\xB7", tileX + tileMid, tileY + tileMid + 3);
               break;
             case ".":
-              view.ctx.fillStyle = "#67b4ef";
+              view.ctx.fillStyle = "#21b200ff";
               view.ctx.fillRect(tileX + 3, tileY + 3, tileW - 6, tileH - 6);
-              view.ctx.fillStyle = "#3d6787";
+              view.ctx.fillStyle = "#146e00ff";
               view.ctx.fillText("\xB7", tileX + tileMid, tileY + tileMid + 3);
               break;
           }
@@ -2294,6 +2295,8 @@ var App = (() => {
       model.levelId = id;
       game = structuredClone(levels[model.levelId]);
       view.levelId.textContent = (model.levelId + 1).toString();
+      view.info.innerHTML = `Solved <strong>${model.solvedIds.length}</strong>
+                           out of <strong>${levels.length}</strong> levels.`;
       storeGame(model);
       setSolvedStyle();
       setReplayStyle();
@@ -2306,6 +2309,8 @@ var App = (() => {
         model.solvedIds.push(model.levelId);
       }
       model.replays[model.levelId] = replay.slice();
+      view.info.innerHTML = `Solved <strong>${model.solvedIds.length}</strong>
+                           out of <strong>${levels.length}</strong> levels.`;
       storeGame(model);
       setSolvedStyle();
       setReplayStyle();

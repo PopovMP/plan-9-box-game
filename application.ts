@@ -9,6 +9,7 @@ interface IView {
   replay : HTMLElement;
   reset  : HTMLElement;
   next   : HTMLElement;
+  info   : HTMLElement;
 }
 
 export function main(): void {
@@ -23,8 +24,9 @@ export function main(): void {
     levelId: document.getElementById("level-id"    ) as HTMLElement,
     solved : document.getElementById("level-solved") as HTMLElement,
     replay : document.getElementById("level-replay") as HTMLElement,
-    reset  : document.getElementById("level-reset") as HTMLElement,
-    next   : document.getElementById("level-next") as HTMLElement,
+    reset  : document.getElementById("level-reset" ) as HTMLElement,
+    next   : document.getElementById("level-next"  ) as HTMLElement,
+    info   : document.getElementById("game-info"   ) as HTMLElement,
   } as IView;
   view.ctx = view.board.getContext("2d") as CanvasRenderingContext2D;
 
@@ -81,9 +83,9 @@ export function main(): void {
           view.ctx.fillText("·", tileX + tileMid, tileY + tileMid + 3);
           break;
         case ".": // Goal
-          view.ctx.fillStyle = "#67b4ef";
+          view.ctx.fillStyle = "#21b200ff";
           view.ctx.fillRect(tileX+3, tileY+3, tileW-6, tileH-6);
-          view.ctx.fillStyle = "#3d6787";
+          view.ctx.fillStyle = "#146e00ff";
           view.ctx.fillText("·", tileX + tileMid, tileY + tileMid + 3);
           break;
       }
@@ -106,6 +108,8 @@ export function main(): void {
     model.levelId = id;
     game = structuredClone(levels[model.levelId]);
     view.levelId.textContent = (model.levelId + 1).toString();
+    view.info.innerHTML = `Solved <strong>${model.solvedIds.length}</strong>
+                           out of <strong>${levels.length}</strong> levels.`;
     storeGame(model);
     setSolvedStyle();
     setReplayStyle();
@@ -119,6 +123,8 @@ export function main(): void {
       model.solvedIds.push(model.levelId);
     }
     model.replays[model.levelId] = replay.slice();
+    view.info.innerHTML = `Solved <strong>${model.solvedIds.length}</strong>
+                           out of <strong>${levels.length}</strong> levels.`;
     storeGame(model);
     setSolvedStyle();
     setReplayStyle();
