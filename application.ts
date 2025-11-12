@@ -1,4 +1,7 @@
-import { type IGame, type IGameModel, EDir, canMove, doMove, isSolved, loadGame, storeGame } from "./game-engine.ts";
+import {
+  type IGame, type IGameModel, EDir, canMove, doMove, isSolved, loadGame, storeGame,
+  moveBox, makePointNext,
+} from "./game-engine.ts";
 import { easyLevels } from "./easy-levels.ts";
 
 interface IView {
@@ -10,6 +13,7 @@ interface IView {
   reset  : HTMLElement;
   next   : HTMLElement;
   info   : HTMLElement;
+  undo   : HTMLElement;
 }
 
 export function main(): void {
@@ -27,6 +31,7 @@ export function main(): void {
     reset  : document.getElementById("level-reset" ) as HTMLElement,
     next   : document.getElementById("level-next"  ) as HTMLElement,
     info   : document.getElementById("game-info"   ) as HTMLElement,
+    undo   : document.getElementById("move-undo"   ) as HTMLElement,
   } as IView;
   view.ctx = view.board.getContext("2d") as CanvasRenderingContext2D;
 
@@ -38,6 +43,7 @@ export function main(): void {
   view.replay.addEventListener("click", onReplay);
   view.reset .addEventListener("click", onReset);
   view.next  .addEventListener("click", onNext);
+  view.undo  .addEventListener("click", onUndo);
 
   function scaleCanvas(): void{
     const mapTileHeight = game.map.length;
@@ -114,6 +120,7 @@ export function main(): void {
     setSolvedStyle();
     setReplayStyle();
     setNextStyle();
+    setUndoStyle();
     scaleCanvas();
     render();
   }
@@ -129,6 +136,7 @@ export function main(): void {
     setSolvedStyle();
     setReplayStyle();
     setNextStyle();
+    setUndoStyle();
     showNext();
   }
 
@@ -161,6 +169,16 @@ export function main(): void {
     } else {
       view.next.classList.remove("d-inline-block");
       view.next.classList.add("d-none");
+    }
+  }
+
+  function setUndoStyle(): void {
+    if (replay.length === 0) {
+      view.undo.classList.remove("d-inline-block");
+      view.undo.classList.add("d-none");
+    } else {
+      view.undo.classList.remove("d-none");
+      view.undo.classList.add("d-inline-block");
     }
   }
 
@@ -201,25 +219,25 @@ export function main(): void {
         }
 
         if (canMove(game, -1, 0)) {
-          doMove(game, -1, 0);
+          const dir = doMove(game, -1, 0);
+          replay.push(dir);
           render();
-          replay.push(EDir.up);
         }
         break;
       case "ArrowRight":
         event.preventDefault();
         if (canMove(game, 0, 1)) {
-          doMove(game, 0, 1);
+          const dir = doMove(game, 0, 1);
+          replay.push(dir);
           render();
-          replay.push(EDir.right);
         }
         break;
       case "ArrowLeft":
         event.preventDefault();
         if (canMove(game, 0, -1)) {
-          doMove(game, 0, -1);
+          const dir = doMove(game, 0, -1);
+          replay.push(dir);
           render();
-          replay.push(EDir.left);
         }
         break;
       case "ArrowDown":
@@ -230,12 +248,20 @@ export function main(): void {
         }
 
         if (canMove(game, 1, 0)) {
-          doMove(game, 1, 0);
+          const dir = doMove(game, 1, 0);
+          replay.push(dir);
           render();
-          replay.push(EDir.down);
         }
         break;
+      case "u":
+      case "U":
+        event.preventDefault();
+        undoMove();
+        render();
+        break;
     }
+
+    setUndoStyle();
 
     if (isSolved(game)) {
       markGameSolved();
@@ -262,24 +288,28 @@ export function main(): void {
 
       switch (model.replays[model.levelId][i]) {
         case EDir.up:
+        case EDir.pushUp:
           if (canMove(game, -1, 0)) {
             doMove(game, -1, 0);
             render();
           }
           break;
         case EDir.left:
+        case EDir.pushLeft:
           if (canMove(game, 0, -1)) {
             doMove(game, 0, -1);
             render();
           }
           break;
         case EDir.right:
+        case EDir.pushRight:
           if (canMove(game, 0, 1)) {
             doMove(game, 0, 1);
             render();
           }
           break;
         case EDir.down:
+        case EDir.pushDown:
           if (canMove(game, 1, 0)) {
             doMove(game, 1, 0);
             render();
@@ -288,6 +318,47 @@ export function main(): void {
       }
 
       setTimeout(loop, time_step, i + 1);
+    }
+  }
+
+  function undoMove(): void {
+    if (isReplaying) return;
+    if (replay.length === 0) return;
+    const lastMove = replay.pop();
+
+    switch (lastMove) {
+      case EDir.up:
+        doMove(game, 1, 0);
+        break;
+      case EDir.pushUp: {
+          const pos = makePointNext(game.hero, -1, 0);
+          doMove(game, 1, 0);
+          moveBox(game, pos, 1, 0);
+        } break;
+      case EDir.left:
+        doMove(game, 0, 1);
+        break;
+      case EDir.pushLeft: {
+          const pos = makePointNext(game.hero, 0, -1);
+          doMove(game, 0, 1);
+          moveBox(game, pos, 0, 1);
+        } break;
+      case EDir.right:
+        doMove(game, 0, -1);
+        break;
+      case EDir.pushRight: {
+          const pos = makePointNext(game.hero, 0, 1);
+          doMove(game, 0, -1);
+          moveBox(game, pos, 0, -1);
+        } break;
+      case EDir.down:
+        doMove(game, -1, 0);
+        break;
+      case EDir.pushDown: {
+          const pos = makePointNext(game.hero, 1, 0);
+          doMove(game, -1, 0);
+          moveBox(game, pos, -1, 0);
+      } break;
     }
   }
 
@@ -301,5 +372,13 @@ export function main(): void {
     event.preventDefault();
     if (isReplaying) return;
     setLevel(Math.min(model.levelId + 1, levels.length - 1));
+  }
+
+  function onUndo(event: Event): void {
+    event.preventDefault();
+    if (isReplaying) return;
+    undoMove();
+    render();
+    setUndoStyle();
   }
 }

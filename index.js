@@ -29,7 +29,11 @@ var App = (() => {
     up: 1,
     right: 2,
     left: 3,
-    down: 4
+    down: 4,
+    pushUp: 11,
+    pushRight: 12,
+    pushLeft: 13,
+    pushDown: 14
   };
   function isPointEq(p1, p2) {
     return p1.s === p2.s && p1.e === p2.e;
@@ -79,19 +83,26 @@ var App = (() => {
   }
   function doMove(game, ds, de) {
     const posNext = makePointNext(game.hero, ds, de);
+    let dir = 0;
     if (isBoxAt(game, posNext)) {
       const posNexter = makePointNext(posNext, ds, de);
       if (isFreeAt(game, posNexter)) {
         moveBox(game, posNext, ds, de);
+        dir += 10;
       } else {
         throw new Error(`Cannot move a box at: ${posNexter}`);
       }
     }
     if (isFreeAt(game, posNext)) {
       movePoint(game.hero, ds, de);
+      if (ds === -1) dir += EDir.up;
+      else if (de === 1) dir += EDir.right;
+      else if (de === -1) dir += EDir.left;
+      else if (ds === 1) dir += EDir.down;
     } else {
       throw new Error(`Cannot move the hero at: ${posNext}`);
     }
+    return dir;
   }
   function isSolved(game) {
     for (const box of game.boxes) {
@@ -2242,7 +2253,8 @@ var App = (() => {
       replay: document.getElementById("level-replay"),
       reset: document.getElementById("level-reset"),
       next: document.getElementById("level-next"),
-      info: document.getElementById("game-info")
+      info: document.getElementById("game-info"),
+      undo: document.getElementById("move-undo")
     };
     view.ctx = view.board.getContext("2d");
     let game;
@@ -2252,6 +2264,7 @@ var App = (() => {
     view.replay.addEventListener("click", onReplay);
     view.reset.addEventListener("click", onReset);
     view.next.addEventListener("click", onNext);
+    view.undo.addEventListener("click", onUndo);
     function scaleCanvas() {
       const mapTileHeight = game.map.length;
       let mapTileWidth = 0;
@@ -2319,6 +2332,7 @@ var App = (() => {
       setSolvedStyle();
       setReplayStyle();
       setNextStyle();
+      setUndoStyle();
       scaleCanvas();
       render();
     }
@@ -2333,6 +2347,7 @@ var App = (() => {
       setSolvedStyle();
       setReplayStyle();
       setNextStyle();
+      setUndoStyle();
       showNext();
     }
     function setSolvedStyle() {
@@ -2358,6 +2373,15 @@ var App = (() => {
       } else {
         view.next.classList.remove("d-inline-block");
         view.next.classList.add("d-none");
+      }
+    }
+    function setUndoStyle() {
+      if (replay.length === 0) {
+        view.undo.classList.remove("d-inline-block");
+        view.undo.classList.add("d-none");
+      } else {
+        view.undo.classList.remove("d-none");
+        view.undo.classList.add("d-inline-block");
       }
     }
     function hideReplay() {
@@ -2393,25 +2417,25 @@ var App = (() => {
             return;
           }
           if (canMove(game, -1, 0)) {
-            doMove(game, -1, 0);
+            const dir = doMove(game, -1, 0);
+            replay.push(dir);
             render();
-            replay.push(EDir.up);
           }
           break;
         case "ArrowRight":
           event.preventDefault();
           if (canMove(game, 0, 1)) {
-            doMove(game, 0, 1);
+            const dir = doMove(game, 0, 1);
+            replay.push(dir);
             render();
-            replay.push(EDir.right);
           }
           break;
         case "ArrowLeft":
           event.preventDefault();
           if (canMove(game, 0, -1)) {
-            doMove(game, 0, -1);
+            const dir = doMove(game, 0, -1);
+            replay.push(dir);
             render();
-            replay.push(EDir.left);
           }
           break;
         case "ArrowDown":
@@ -2421,12 +2445,19 @@ var App = (() => {
             return;
           }
           if (canMove(game, 1, 0)) {
-            doMove(game, 1, 0);
+            const dir = doMove(game, 1, 0);
+            replay.push(dir);
             render();
-            replay.push(EDir.down);
           }
           break;
+        case "u":
+        case "U":
+          event.preventDefault();
+          undoMove();
+          render();
+          break;
       }
+      setUndoStyle();
       if (isSolved(game)) {
         markGameSolved();
       }
@@ -2447,24 +2478,28 @@ var App = (() => {
         }
         switch (model.replays[model.levelId][i]) {
           case EDir.up:
+          case EDir.pushUp:
             if (canMove(game, -1, 0)) {
               doMove(game, -1, 0);
               render();
             }
             break;
           case EDir.left:
+          case EDir.pushLeft:
             if (canMove(game, 0, -1)) {
               doMove(game, 0, -1);
               render();
             }
             break;
           case EDir.right:
+          case EDir.pushRight:
             if (canMove(game, 0, 1)) {
               doMove(game, 0, 1);
               render();
             }
             break;
           case EDir.down:
+          case EDir.pushDown:
             if (canMove(game, 1, 0)) {
               doMove(game, 1, 0);
               render();
@@ -2472,6 +2507,53 @@ var App = (() => {
             break;
         }
         setTimeout(loop, time_step, i + 1);
+      }
+    }
+    function undoMove() {
+      if (isReplaying) return;
+      if (replay.length === 0) return;
+      const lastMove = replay.pop();
+      switch (lastMove) {
+        case EDir.up:
+          doMove(game, 1, 0);
+          break;
+        case EDir.pushUp:
+          {
+            const pos = makePointNext(game.hero, -1, 0);
+            doMove(game, 1, 0);
+            moveBox(game, pos, 1, 0);
+          }
+          break;
+        case EDir.left:
+          doMove(game, 0, 1);
+          break;
+        case EDir.pushLeft:
+          {
+            const pos = makePointNext(game.hero, 0, -1);
+            doMove(game, 0, 1);
+            moveBox(game, pos, 0, 1);
+          }
+          break;
+        case EDir.right:
+          doMove(game, 0, -1);
+          break;
+        case EDir.pushRight:
+          {
+            const pos = makePointNext(game.hero, 0, 1);
+            doMove(game, 0, -1);
+            moveBox(game, pos, 0, -1);
+          }
+          break;
+        case EDir.down:
+          doMove(game, -1, 0);
+          break;
+        case EDir.pushDown:
+          {
+            const pos = makePointNext(game.hero, 1, 0);
+            doMove(game, -1, 0);
+            moveBox(game, pos, -1, 0);
+          }
+          break;
       }
     }
     function onReset(event) {
@@ -2483,6 +2565,13 @@ var App = (() => {
       event.preventDefault();
       if (isReplaying) return;
       setLevel(Math.min(model.levelId + 1, levels.length - 1));
+    }
+    function onUndo(event) {
+      event.preventDefault();
+      if (isReplaying) return;
+      undoMove();
+      render();
+      setUndoStyle();
     }
   }
   return __toCommonJS(application_exports);

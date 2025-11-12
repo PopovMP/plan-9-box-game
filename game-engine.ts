@@ -18,17 +18,21 @@ export interface IGameModel {
 }
 
 export const EDir = {
-  up   : 1,
-  right: 2,
-  left : 3,
-  down : 4,
+  up       :  1,
+  right    :  2,
+  left     :  3,
+  down     :  4,
+  pushUp   : 11,
+  pushRight: 12,
+  pushLeft : 13,
+  pushDown : 14,
 };
 
 function isPointEq(p1: IPoint, p2: IPoint): boolean {
   return p1.s === p2.s && p1.e === p2.e;
 }
 
-function makePointNext(point: IPoint, ds: number, de: number): IPoint {
+export function makePointNext(point: IPoint, ds: number, de: number): IPoint {
   return {s: point.s + ds, e: point.e + de};
 }
 
@@ -37,7 +41,7 @@ function movePoint(point: IPoint, ds: number, de: number): void {
   point.e += de;
 }
 
-function moveBox(game: IGame, fromPos: IPoint, ds: number, de: number): void {
+export function moveBox(game: IGame, fromPos: IPoint, ds: number, de: number): void {
   for (const box of game.boxes) {
     if (isPointEq(box, fromPos)) {
       movePoint(box, ds, de);
@@ -87,12 +91,14 @@ export function canMove(game: IGame, ds: number, de: number): boolean {
   return false;
 }
 
-export function doMove(game: IGame, ds: number, de: number): void {
+export function doMove(game: IGame, ds: number, de: number): number {
   const posNext: IPoint = makePointNext(game.hero, ds, de);
+  let dir = 0;
   if (isBoxAt(game, posNext)) {
       const posNexter: IPoint = makePointNext(posNext, ds, de);
       if (isFreeAt(game, posNexter)) {
           moveBox(game, posNext, ds, de);
+          dir += 10;
       } else {
           throw new Error(`Cannot move a box at: ${posNexter}`);
       }
@@ -100,9 +106,15 @@ export function doMove(game: IGame, ds: number, de: number): void {
 
   if (isFreeAt(game, posNext)) {
       movePoint(game.hero, ds, de);
+      if      (ds === -1) dir += EDir.up;
+      else if (de ===  1) dir += EDir.right;
+      else if (de === -1) dir += EDir.left;
+      else if (ds ===  1) dir += EDir.down;
   } else {
       throw new Error(`Cannot move the hero at: ${posNext}`);
   }
+
+  return dir;
 }
 
 export function isSolved(game: IGame): boolean {
