@@ -79,26 +79,46 @@ function isFreeAt(game: IGame, pos: IPoint): boolean {
     return isFloorAt(game, pos) && !isBoxAt(game, pos);
 }
 
-export function canMove(game: IGame, ds: number, de: number): boolean {
+export function canMove(game: IGame, ds: number, de: number): number {
   const posNext: IPoint = makePointNext(game.hero, ds, de);
-  if (isFreeAt(game, posNext)) return true;
+  let dir = 0;
+
+  if (isFloorAt(game, posNext)) {
+      if      (ds === -1) dir += EDir.up;
+      else if (de ===  1) dir += EDir.right;
+      else if (de === -1) dir += EDir.left;
+      else if (ds ===  1) dir += EDir.down;
+  } else {
+    return 0;
+  }
 
   if (isBoxAt(game, posNext)) {
       const posNexter: IPoint = makePointNext(posNext, ds, de);
-      if (isFreeAt(game, posNexter)) return true;
+      if (isFreeAt(game, posNexter)) {
+        dir += 10;
+      } else {
+        return 0;
+      }
   }
 
-  return false;
+  return dir;
 }
 
-export function doMove(game: IGame, ds: number, de: number): number {
+export function doMove(game: IGame, dir: number): void {
+  const ds = dir === EDir.up   || dir === EDir.pushUp   ? -1
+           : dir === EDir.down || dir === EDir.pushDown ?  1
+                                                        : 0;
+
+  const de = dir === EDir.left  || dir === EDir.pushLeft  ? -1
+           : dir === EDir.right || dir === EDir.pushRight ?  1
+                                                          : 0;
+
   const posNext: IPoint = makePointNext(game.hero, ds, de);
-  let dir = 0;
+
   if (isBoxAt(game, posNext)) {
       const posNexter: IPoint = makePointNext(posNext, ds, de);
       if (isFreeAt(game, posNexter)) {
           moveBox(game, posNext, ds, de);
-          dir += 10;
       } else {
           throw new Error(`Cannot move a box at: ${posNexter}`);
       }
@@ -106,15 +126,9 @@ export function doMove(game: IGame, ds: number, de: number): number {
 
   if (isFreeAt(game, posNext)) {
       movePoint(game.hero, ds, de);
-      if      (ds === -1) dir += EDir.up;
-      else if (de ===  1) dir += EDir.right;
-      else if (de === -1) dir += EDir.left;
-      else if (ds ===  1) dir += EDir.down;
   } else {
       throw new Error(`Cannot move the hero at: ${posNext}`);
   }
-
-  return dir;
 }
 
 export function isSolved(game: IGame): boolean {

@@ -53,6 +53,7 @@ export default defineConfig(
       "no-var"              : "error",
       "no-with"             : "error",
       "prefer-const"        : "error",
+      "no-cond-assign"      : "off",
       "quotes"              : ["error", "double", { avoidEscape: true }],
       "semi"                : ["error", "always"],
 

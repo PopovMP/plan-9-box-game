@@ -74,35 +74,42 @@ var App = (() => {
   }
   function canMove(game, ds, de) {
     const posNext = makePointNext(game.hero, ds, de);
-    if (isFreeAt(game, posNext)) return true;
+    let dir = 0;
+    if (isFloorAt(game, posNext)) {
+      if (ds === -1) dir += EDir.up;
+      else if (de === 1) dir += EDir.right;
+      else if (de === -1) dir += EDir.left;
+      else if (ds === 1) dir += EDir.down;
+    } else {
+      return 0;
+    }
     if (isBoxAt(game, posNext)) {
       const posNexter = makePointNext(posNext, ds, de);
-      if (isFreeAt(game, posNexter)) return true;
+      if (isFreeAt(game, posNexter)) {
+        dir += 10;
+      } else {
+        return 0;
+      }
     }
-    return false;
+    return dir;
   }
-  function doMove(game, ds, de) {
+  function doMove(game, dir) {
+    const ds = dir === EDir.up || dir === EDir.pushUp ? -1 : dir === EDir.down || dir === EDir.pushDown ? 1 : 0;
+    const de = dir === EDir.left || dir === EDir.pushLeft ? -1 : dir === EDir.right || dir === EDir.pushRight ? 1 : 0;
     const posNext = makePointNext(game.hero, ds, de);
-    let dir = 0;
     if (isBoxAt(game, posNext)) {
       const posNexter = makePointNext(posNext, ds, de);
       if (isFreeAt(game, posNexter)) {
         moveBox(game, posNext, ds, de);
-        dir += 10;
       } else {
         throw new Error(`Cannot move a box at: ${posNexter}`);
       }
     }
     if (isFreeAt(game, posNext)) {
       movePoint(game.hero, ds, de);
-      if (ds === -1) dir += EDir.up;
-      else if (de === 1) dir += EDir.right;
-      else if (de === -1) dir += EDir.left;
-      else if (ds === 1) dir += EDir.down;
     } else {
       throw new Error(`Cannot move the hero at: ${posNext}`);
     }
-    return dir;
   }
   function isSolved(game) {
     for (const box of game.boxes) {
@@ -2394,6 +2401,7 @@ var App = (() => {
     }
     function onKeyDown(event) {
       if (isReplaying) return;
+      let dir = 0;
       switch (event.key) {
         case "+":
         case "=":
@@ -2416,24 +2424,24 @@ var App = (() => {
             setLevel(Math.min(model.levelId + 1, levels.length - 1));
             return;
           }
-          if (canMove(game, -1, 0)) {
-            const dir = doMove(game, -1, 0);
+          if (dir = canMove(game, -1, 0)) {
+            doMove(game, dir);
             replay.push(dir);
             render();
           }
           break;
         case "ArrowRight":
           event.preventDefault();
-          if (canMove(game, 0, 1)) {
-            const dir = doMove(game, 0, 1);
+          if (dir = canMove(game, 0, 1)) {
+            doMove(game, dir);
             replay.push(dir);
             render();
           }
           break;
         case "ArrowLeft":
           event.preventDefault();
-          if (canMove(game, 0, -1)) {
-            const dir = doMove(game, 0, -1);
+          if (dir = canMove(game, 0, -1)) {
+            doMove(game, dir);
             replay.push(dir);
             render();
           }
@@ -2444,8 +2452,8 @@ var App = (() => {
             setLevel(Math.max(model.levelId - 1, 0));
             return;
           }
-          if (canMove(game, 1, 0)) {
-            const dir = doMove(game, 1, 0);
+          if (dir = canMove(game, 1, 0)) {
+            doMove(game, dir);
             replay.push(dir);
             render();
           }
@@ -2479,33 +2487,22 @@ var App = (() => {
         switch (model.replays[model.levelId][i]) {
           case EDir.up:
           case EDir.pushUp:
-            if (canMove(game, -1, 0)) {
-              doMove(game, -1, 0);
-              render();
-            }
+            doMove(game, EDir.up);
             break;
           case EDir.left:
           case EDir.pushLeft:
-            if (canMove(game, 0, -1)) {
-              doMove(game, 0, -1);
-              render();
-            }
+            doMove(game, EDir.left);
             break;
           case EDir.right:
           case EDir.pushRight:
-            if (canMove(game, 0, 1)) {
-              doMove(game, 0, 1);
-              render();
-            }
+            doMove(game, EDir.right);
             break;
           case EDir.down:
           case EDir.pushDown:
-            if (canMove(game, 1, 0)) {
-              doMove(game, 1, 0);
-              render();
-            }
+            doMove(game, EDir.down);
             break;
         }
+        render();
         setTimeout(loop, time_step, i + 1);
       }
     }
@@ -2515,42 +2512,42 @@ var App = (() => {
       const lastMove = replay.pop();
       switch (lastMove) {
         case EDir.up:
-          doMove(game, 1, 0);
+          doMove(game, EDir.down);
           break;
         case EDir.pushUp:
           {
             const pos = makePointNext(game.hero, -1, 0);
-            doMove(game, 1, 0);
+            doMove(game, EDir.pushDown);
             moveBox(game, pos, 1, 0);
           }
           break;
         case EDir.left:
-          doMove(game, 0, 1);
+          doMove(game, EDir.right);
           break;
         case EDir.pushLeft:
           {
             const pos = makePointNext(game.hero, 0, -1);
-            doMove(game, 0, 1);
+            doMove(game, EDir.pushRight);
             moveBox(game, pos, 0, 1);
           }
           break;
         case EDir.right:
-          doMove(game, 0, -1);
+          doMove(game, EDir.left);
           break;
         case EDir.pushRight:
           {
             const pos = makePointNext(game.hero, 0, 1);
-            doMove(game, 0, -1);
+            doMove(game, EDir.pushLeft);
             moveBox(game, pos, 0, -1);
           }
           break;
         case EDir.down:
-          doMove(game, -1, 0);
+          doMove(game, EDir.up);
           break;
         case EDir.pushDown:
           {
             const pos = makePointNext(game.hero, 1, 0);
-            doMove(game, -1, 0);
+            doMove(game, EDir.pushUp);
             moveBox(game, pos, -1, 0);
           }
           break;
