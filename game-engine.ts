@@ -11,10 +11,10 @@ export interface IGame {
 }
 
 export interface IGameModel {
-  scale         : number;
-  levelId: number;
+  scale    : number;
+  levelId  : number;
   solvedIds: number[];
-  replays       : number[][];
+  replays  : number[][];
 }
 
 export const EDir = {
