@@ -59,37 +59,50 @@ function getMapCharAt(game: IGame, pos: IPoint): string {
 
 function isBoxAt(game: IGame, pos: IPoint): boolean {
   for (const box of game.boxes) {
-    if (isPointEq(box, pos)) {
-      return true;
-    }
+    if (isPointEq(box, pos)) return true;
   }
 
   return false;
 }
 
+// Gets if there is a steppable floor tile at pos
+function isFloorAt(game: IGame, pos: IPoint): boolean {
+  const char: string = getMapCharAt(game, pos);
+  return char === " " || char === ".";
+}
+
+function isFreeAt(game: IGame, pos: IPoint): boolean {
+    return isFloorAt(game, pos) && !isBoxAt(game, pos);
+}
+
 export function canMove(game: IGame, ds: number, de: number): boolean {
-  const posNext   : IPoint = makePointNext(game.hero, ds, de);
-  const posNexter : IPoint = makePointNext(posNext, ds, de);
-  const nextChar  : string = getMapCharAt(game, posNext);
-  const nexterChar: string = getMapCharAt(game, posNexter);
+  const posNext: IPoint = makePointNext(game.hero, ds, de);
+  if (isFreeAt(game, posNext)) return true;
 
-  if (nextChar === " " || nextChar === ".") {
-    // True if empty space
-    if (!isBoxAt(game, posNext)) return true;
-
-    // True if box movable
-    if (nexterChar === " " || nexterChar === ".") {
-      if (!isBoxAt(game, posNexter)) return true;
-    }
+  if (isBoxAt(game, posNext)) {
+      const posNexter: IPoint = makePointNext(posNext, ds, de);
+      if (isFreeAt(game, posNexter)) return true;
   }
 
   return false;
 }
 
 export function doMove(game: IGame, ds: number, de: number): void {
-  const posNext = makePointNext(game.hero, ds, de);
-  moveBox(game, posNext, ds, de);
-  movePoint(game.hero, ds, de);
+  const posNext: IPoint = makePointNext(game.hero, ds, de);
+  if (isBoxAt(game, posNext)) {
+      const posNexter: IPoint = makePointNext(posNext, ds, de);
+      if (isFreeAt(game, posNexter)) {
+          moveBox(game, posNext, ds, de);
+      } else {
+          throw new Error(`Cannot move a box at: ${posNexter}`);
+      }
+  }
+
+  if (isFreeAt(game, posNext)) {
+      movePoint(game.hero, ds, de);
+  } else {
+      throw new Error(`Cannot move the hero at: ${posNext}`);
+  }
 }
 
 export function isSolved(game: IGame): boolean {

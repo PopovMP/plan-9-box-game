@@ -25,6 +25,12 @@ var App = (() => {
   });
 
   // game-engine.ts
+  var EDir = {
+    up: 1,
+    right: 2,
+    left: 3,
+    down: 4
+  };
   function isPointEq(p1, p2) {
     return p1.s === p2.s && p1.e === p2.e;
   }
@@ -51,29 +57,41 @@ var App = (() => {
   }
   function isBoxAt(game, pos) {
     for (const box of game.boxes) {
-      if (isPointEq(box, pos)) {
-        return true;
-      }
+      if (isPointEq(box, pos)) return true;
     }
     return false;
   }
+  function isFloorAt(game, pos) {
+    const char = getMapCharAt(game, pos);
+    return char === " " || char === ".";
+  }
+  function isFreeAt(game, pos) {
+    return isFloorAt(game, pos) && !isBoxAt(game, pos);
+  }
   function canMove(game, ds, de) {
     const posNext = makePointNext(game.hero, ds, de);
-    const posNexter = makePointNext(posNext, ds, de);
-    const nextChar = getMapCharAt(game, posNext);
-    const nexterChar = getMapCharAt(game, posNexter);
-    if (nextChar === " " || nextChar === ".") {
-      if (!isBoxAt(game, posNext)) return true;
-      if (nexterChar === " " || nexterChar === ".") {
-        if (!isBoxAt(game, posNexter)) return true;
-      }
+    if (isFreeAt(game, posNext)) return true;
+    if (isBoxAt(game, posNext)) {
+      const posNexter = makePointNext(posNext, ds, de);
+      if (isFreeAt(game, posNexter)) return true;
     }
     return false;
   }
   function doMove(game, ds, de) {
     const posNext = makePointNext(game.hero, ds, de);
-    moveBox(game, posNext, ds, de);
-    movePoint(game.hero, ds, de);
+    if (isBoxAt(game, posNext)) {
+      const posNexter = makePointNext(posNext, ds, de);
+      if (isFreeAt(game, posNexter)) {
+        moveBox(game, posNext, ds, de);
+      } else {
+        throw new Error(`Cannot move a box at: ${posNexter}`);
+      }
+    }
+    if (isFreeAt(game, posNext)) {
+      movePoint(game.hero, ds, de);
+    } else {
+      throw new Error(`Cannot move the hero at: ${posNext}`);
+    }
   }
   function isSolved(game) {
     for (const box of game.boxes) {
@@ -2377,7 +2395,7 @@ var App = (() => {
           if (canMove(game, -1, 0)) {
             doMove(game, -1, 0);
             render();
-            replay.push(1 /* up */);
+            replay.push(EDir.up);
           }
           break;
         case "ArrowRight":
@@ -2385,7 +2403,7 @@ var App = (() => {
           if (canMove(game, 0, 1)) {
             doMove(game, 0, 1);
             render();
-            replay.push(2 /* right */);
+            replay.push(EDir.right);
           }
           break;
         case "ArrowLeft":
@@ -2393,7 +2411,7 @@ var App = (() => {
           if (canMove(game, 0, -1)) {
             doMove(game, 0, -1);
             render();
-            replay.push(3 /* left */);
+            replay.push(EDir.left);
           }
           break;
         case "ArrowDown":
@@ -2405,7 +2423,7 @@ var App = (() => {
           if (canMove(game, 1, 0)) {
             doMove(game, 1, 0);
             render();
-            replay.push(4 /* down */);
+            replay.push(EDir.down);
           }
           break;
       }
@@ -2428,25 +2446,25 @@ var App = (() => {
           return;
         }
         switch (model.replays[model.levelId][i]) {
-          case 1 /* up */:
+          case EDir.up:
             if (canMove(game, -1, 0)) {
               doMove(game, -1, 0);
               render();
             }
             break;
-          case 3 /* left */:
+          case EDir.left:
             if (canMove(game, 0, -1)) {
               doMove(game, 0, -1);
               render();
             }
             break;
-          case 2 /* right */:
+          case EDir.right:
             if (canMove(game, 0, 1)) {
               doMove(game, 0, 1);
               render();
             }
             break;
-          case 4 /* down */:
+          case EDir.down:
             if (canMove(game, 1, 0)) {
               doMove(game, 1, 0);
               render();
