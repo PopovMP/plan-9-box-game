@@ -17,12 +17,12 @@ export interface IGameModel {
   replays       : number[][];
 }
 
-export const enum EDir {
-  up    = 1,
-  right = 2,
-  left  = 3,
-  down  = 4,
-}
+export const EDir = {
+  up   : 1,
+  right: 2,
+  left : 3,
+  down : 4,
+};
 
 function isPointEq(p1: IPoint, p2: IPoint): boolean {
   return p1.s === p2.s && p1.e === p2.e;
