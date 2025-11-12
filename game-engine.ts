@@ -28,6 +28,16 @@ export const EDir = {
   pushDown : 14,
 };
 
+export function areGameEqual(gameA: IGame, gameB: IGame): boolean {
+  if (!isPointEq(gameA.hero, gameB.hero)) return false;
+
+  // BUG: Gets different games when boxes switch places
+  for (let i = 0; i < gameA.boxes.length; i++) {
+    if (!isPointEq(gameA.boxes[i], gameB.boxes[i])) return false;
+  }
+  return true;
+}
+
 function isPointEq(p1: IPoint, p2: IPoint): boolean {
   return p1.s === p2.s && p1.e === p2.e;
 }

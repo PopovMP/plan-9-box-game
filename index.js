@@ -35,6 +35,13 @@ var App = (() => {
     pushLeft: 13,
     pushDown: 14
   };
+  function areGameEqual(gameA, gameB) {
+    if (!isPointEq(gameA.hero, gameB.hero)) return false;
+    for (let i = 0; i < gameA.boxes.length; i++) {
+      if (!isPointEq(gameA.boxes[i], gameB.boxes[i])) return false;
+    }
+    return true;
+  }
   function isPointEq(p1, p2) {
     return p1.s === p2.s && p1.e === p2.e;
   }
@@ -2337,6 +2344,7 @@ var App = (() => {
                            out of <strong>${levels.length}</strong> levels.`;
       storeGame(model);
       setSolvedStyle();
+      setResetStyle();
       setReplayStyle();
       setNextStyle();
       setUndoStyle();
@@ -2348,6 +2356,7 @@ var App = (() => {
         model.solvedIds.push(model.levelId);
       }
       model.replays[model.levelId] = replay.slice();
+      replay.length = 0;
       view.info.innerHTML = `Solved <strong>${model.solvedIds.length}</strong>
                            out of <strong>${levels.length}</strong> levels.`;
       storeGame(model);
@@ -2364,6 +2373,15 @@ var App = (() => {
       } else {
         view.solved.classList.add("d-none");
         view.solved.classList.remove("d-inline-block");
+      }
+    }
+    function setResetStyle() {
+      if (areGameEqual(game, levels[model.levelId])) {
+        view.reset.classList.add("d-none");
+        view.reset.classList.remove("d-inline-block");
+      } else {
+        view.reset.classList.remove("d-none");
+        view.reset.classList.add("d-inline-block");
       }
     }
     function setReplayStyle() {
@@ -2383,7 +2401,10 @@ var App = (() => {
       }
     }
     function setUndoStyle() {
-      if (replay.length === 0) {
+      if (areGameEqual(game, levels[model.levelId])) {
+        replay.length = 0;
+      }
+      if (replay.length === 0 || isSolved(game)) {
         view.undo.classList.remove("d-inline-block");
         view.undo.classList.add("d-none");
       } else {
@@ -2408,14 +2429,12 @@ var App = (() => {
           event.preventDefault();
           if (model.scale < 3) model.scale += 0.2;
           scaleCanvas();
-          render();
           storeGame(model);
           break;
         case "-":
           event.preventDefault();
           if (model.scale > 0.4) model.scale -= 0.2;
           scaleCanvas();
-          render();
           storeGame(model);
           break;
         case "ArrowUp":
@@ -2424,26 +2443,23 @@ var App = (() => {
             setLevel(Math.min(model.levelId + 1, levels.length - 1));
             return;
           }
-          if (dir = canMove(game, -1, 0)) {
+          if ((dir = canMove(game, -1, 0)) && !isSolved(game)) {
             doMove(game, dir);
             replay.push(dir);
-            render();
           }
           break;
         case "ArrowRight":
           event.preventDefault();
-          if (dir = canMove(game, 0, 1)) {
+          if ((dir = canMove(game, 0, 1)) && !isSolved(game)) {
             doMove(game, dir);
             replay.push(dir);
-            render();
           }
           break;
         case "ArrowLeft":
           event.preventDefault();
-          if (dir = canMove(game, 0, -1)) {
+          if ((dir = canMove(game, 0, -1)) && !isSolved(game)) {
             doMove(game, dir);
             replay.push(dir);
-            render();
           }
           break;
         case "ArrowDown":
@@ -2452,20 +2468,20 @@ var App = (() => {
             setLevel(Math.max(model.levelId - 1, 0));
             return;
           }
-          if (dir = canMove(game, 1, 0)) {
+          if ((dir = canMove(game, 1, 0)) && !isSolved(game)) {
             doMove(game, dir);
             replay.push(dir);
-            render();
           }
           break;
         case "u":
         case "U":
           event.preventDefault();
           undoMove();
-          render();
           break;
       }
+      render();
       setUndoStyle();
+      setResetStyle();
       if (isSolved(game)) {
         markGameSolved();
       }
@@ -2476,6 +2492,7 @@ var App = (() => {
       if (!Array.isArray(model.replays[model.levelId]) || model.replays[model.levelId].length === 0) return;
       isReplaying = true;
       game = structuredClone(levels[model.levelId]);
+      replay.length = 0;
       render();
       const time_step = 200;
       setTimeout(loop, time_step, 0);

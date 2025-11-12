@@ -1,6 +1,6 @@
 import {
   type IGame, type IGameModel, EDir, canMove, doMove, isSolved, loadGame, storeGame,
-  moveBox, makePointNext,
+  moveBox, makePointNext, areGameEqual,
 } from "./game-engine.ts";
 import { easyLevels } from "./easy-levels.ts";
 
@@ -118,6 +118,7 @@ export function main(): void {
                            out of <strong>${levels.length}</strong> levels.`;
     storeGame(model);
     setSolvedStyle();
+    setResetStyle();
     setReplayStyle();
     setNextStyle();
     setUndoStyle();
@@ -130,6 +131,7 @@ export function main(): void {
       model.solvedIds.push(model.levelId);
     }
     model.replays[model.levelId] = replay.slice();
+    replay.length = 0;
     view.info.innerHTML = `Solved <strong>${model.solvedIds.length}</strong>
                            out of <strong>${levels.length}</strong> levels.`;
     storeGame(model);
@@ -147,6 +149,16 @@ export function main(): void {
     } else {
       view.solved.classList.add("d-none");
       view.solved.classList.remove("d-inline-block");
+    }
+  }
+
+  function setResetStyle(): void {
+    if (areGameEqual(game, levels[model.levelId])) {
+      view.reset.classList.add("d-none");
+      view.reset.classList.remove("d-inline-block");
+    } else {
+      view.reset.classList.remove("d-none");
+      view.reset.classList.add("d-inline-block");
     }
   }
 
@@ -173,7 +185,11 @@ export function main(): void {
   }
 
   function setUndoStyle(): void {
-    if (replay.length === 0) {
+    if (areGameEqual(game, levels[model.levelId])) {
+      replay.length = 0;
+    }
+
+    if (replay.length === 0 || isSolved(game)) {
       view.undo.classList.remove("d-inline-block");
       view.undo.classList.add("d-none");
     } else {
@@ -202,14 +218,12 @@ export function main(): void {
         event.preventDefault();
         if (model.scale < 3) model.scale += 0.2;
         scaleCanvas();
-        render();
         storeGame(model);
         break;
       case "-":
         event.preventDefault();
         if (model.scale > 0.4) model.scale -= 0.2;
         scaleCanvas();
-        render();
         storeGame(model);
         break;
       case "ArrowUp":
@@ -219,26 +233,23 @@ export function main(): void {
           return;
         }
 
-        if (dir = canMove(game, -1, 0)) {
+        if ((dir = canMove(game, -1, 0)) && !isSolved(game)) {
           doMove(game, dir);
           replay.push(dir);
-          render();
         }
         break;
       case "ArrowRight":
         event.preventDefault();
-        if (dir = canMove(game, 0, 1)) {
+        if ((dir = canMove(game, 0, 1)) && !isSolved(game)) {
           doMove(game, dir);
           replay.push(dir);
-          render();
         }
         break;
       case "ArrowLeft":
         event.preventDefault();
-        if (dir = canMove(game, 0, -1)) {
+        if ((dir = canMove(game, 0, -1)) && !isSolved(game)) {
           doMove(game, dir);
           replay.push(dir);
-          render();
         }
         break;
       case "ArrowDown":
@@ -248,22 +259,21 @@ export function main(): void {
           return;
         }
 
-        if (dir = canMove(game, 1, 0)) {
+        if ((dir = canMove(game, 1, 0)) && !isSolved(game)) {
           doMove(game, dir);
           replay.push(dir);
-          render();
         }
         break;
       case "u":
       case "U":
         event.preventDefault();
         undoMove();
-        render();
         break;
     }
 
+    render();
     setUndoStyle();
-
+    setResetStyle();
     if (isSolved(game)) {
       markGameSolved();
     }
@@ -276,6 +286,7 @@ export function main(): void {
         model.replays[model.levelId].length === 0) return;
     isReplaying = true;
     game = structuredClone(levels[model.levelId]);
+    replay.length = 0;
     render();
 
     const time_step = 200;
