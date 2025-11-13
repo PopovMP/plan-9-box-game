@@ -4,6 +4,7 @@ import {
 } from "./game-engine.ts";
 import { easyLevels } from "./easy-levels.ts";
 import { render, scaleCanvas } from "./renderer.ts";
+import { makeGoodMap, findPossibleMoves, makeBoxMap, makeStepMap } from "./solver.ts";
 
 interface IView {
   board  : HTMLCanvasElement;
@@ -46,6 +47,11 @@ export function main(): void {
     replay.length = 0;
     model.levelId = id;
     game = structuredClone(levels[model.levelId]);
+    game.boxMap  = makeBoxMap(game);
+    game.goodMap = makeGoodMap(game.map);
+    game.stepMap = makeStepMap(game);
+    game.possibleMoves = findPossibleMoves(game);
+
     view.levelId.textContent = (model.levelId + 1).toString();
     view.info.innerHTML = `Solved <strong>${model.solvedIds.length}</strong>
                            out of <strong>${levels.length}</strong> levels.`;
@@ -203,6 +209,11 @@ export function main(): void {
         break;
     }
 
+    const timeNow = Date.now();
+    game.boxMap        = makeBoxMap(game);
+    game.stepMap       = makeStepMap(game);
+    game.possibleMoves = findPossibleMoves(game);
+    console.log("Time: " +  (Date.now() - timeNow));
     render(view.board, game, model.scale);
     if (isSolved(game)) {
       markGameSolved();
@@ -293,6 +304,10 @@ export function main(): void {
           moveBox(game, pos, -1, 0);
       } break;
     }
+
+    game.boxMap        = makeBoxMap(game);
+    game.stepMap       = makeStepMap(game);
+    game.possibleMoves = findPossibleMoves(game);
   }
 
   function onReset(event: Event): void {

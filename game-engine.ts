@@ -4,10 +4,14 @@ export interface IPoint {
 }
 
 export interface IGame {
-  id   : number,
-  hero : IPoint,
-  boxes: IPoint[],
-  map  : string[],
+  id     : number,
+  hero   : IPoint,
+  boxes  : IPoint[],
+  map    : string[],
+  boxMap ?: boolean[][],
+  goodMap?: boolean[][],
+  stepMap?: boolean[][],
+  possibleMoves?: number[],
 }
 
 export interface IGameModel {
