@@ -2253,10 +2253,66 @@ var App = (() => {
     }
   ];
 
+  // renderer.ts
+  var TILE_SIZE = 32;
+  function scaleCanvas(canvas, game, scale) {
+    canvas.width = Math.round(scale * TILE_SIZE * game.map[0].length);
+    canvas.height = Math.round(scale * TILE_SIZE * game.map.length);
+  }
+  function render(canvas, game, scale) {
+    const ctx = canvas.getContext("2d");
+    const tileSize = scale * TILE_SIZE;
+    const dotR = 2 * scale;
+    const dotStart = 0;
+    const dotEnd = 2 * Math.PI;
+    ctx.fillStyle = "#DED6AE";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.textBaseline = "middle";
+    ctx.textAlign = "center";
+    ctx.font = Math.round(tileSize - 4) + "px Sansserif";
+    for (let s = 0; s < game.map.length; s++) {
+      for (let e = 0; e < game.map[s].length; e++) {
+        const tileX = e * tileSize;
+        const tileY = s * tileSize;
+        const midX = tileX + tileSize / 2;
+        const midY = tileY + tileSize / 2;
+        switch (game.map[s][e]) {
+          case "#":
+            ctx.fillStyle = "#bbbbbb";
+            ctx.fillRect(tileX, tileY, tileSize, tileSize);
+            ctx.fillText("\u{1F9F1}", midX, midY);
+            break;
+          case " ":
+            ctx.beginPath();
+            ctx.fillStyle = "#C5BE9A";
+            ctx.arc(midX, midY, dotR, dotStart, dotEnd);
+            ctx.fill();
+            break;
+          case ".":
+            ctx.fillStyle = "#5bbf44";
+            ctx.fillRect(tileX + 3, tileY + 3, tileSize - 6, tileSize - 6);
+            ctx.beginPath();
+            ctx.fillStyle = "#146e00";
+            ctx.arc(midX, midY, dotR, dotStart, dotEnd);
+            ctx.fill();
+            break;
+        }
+      }
+    }
+    ctx.fillText(
+      "\u{1F9D1}\u200D\u{1F3ED}",
+      game.hero.e * tileSize + tileSize / 2,
+      game.hero.s * tileSize + tileSize / 2
+    );
+    for (const box of game.boxes) {
+      const tileX = box.e * tileSize;
+      const tileY = box.s * tileSize;
+      ctx.fillText("\u{1F4E6}", tileX + tileSize / 2, tileY + tileSize / 2);
+    }
+  }
+
   // application.ts
   function main() {
-    const TILE_WIDTH = 32;
-    const TILE_HEIGHT = 32;
     const levels = easyLevels;
     const model = loadGame();
     const replay = [];
@@ -2270,7 +2326,6 @@ var App = (() => {
       info: document.getElementById("game-info"),
       undo: document.getElementById("move-undo")
     };
-    view.ctx = view.board.getContext("2d");
     let game;
     let isReplaying = false;
     setLevel(model.levelId);
@@ -2279,62 +2334,6 @@ var App = (() => {
     view.reset.addEventListener("click", onReset);
     view.next.addEventListener("click", onNext);
     view.undo.addEventListener("click", onUndo);
-    function scaleCanvas() {
-      const mapTileHeight = game.map.length;
-      let mapTileWidth = 0;
-      for (const line of game.map) {
-        if (line.length > mapTileWidth) {
-          mapTileWidth = line.length;
-        }
-      }
-      const canvasWidth = Math.round(model.scale * TILE_WIDTH * mapTileWidth);
-      const canvasHeight = Math.round(model.scale * TILE_HEIGHT * mapTileHeight);
-      view.board.width = canvasWidth;
-      view.board.height = canvasHeight;
-    }
-    function render() {
-      view.ctx.fillStyle = "#DED6AE";
-      view.ctx.fillRect(0, 0, view.ctx.canvas.width, view.ctx.canvas.height);
-      const tileH = model.scale * TILE_HEIGHT;
-      const tileW = model.scale * TILE_WIDTH;
-      view.ctx.textBaseline = "middle";
-      view.ctx.textAlign = "center";
-      view.ctx.font = Math.round(tileH - 4) + "px Sansserif";
-      for (let s = 0; s < game.map.length; s++) {
-        for (let e = 0; e < game.map[s].length; e++) {
-          const tileX = Math.round(model.scale * e * TILE_WIDTH);
-          const tileY = Math.round(model.scale * s * TILE_HEIGHT);
-          const tileMid = Math.round(tileW / 2);
-          switch (game.map[s][e]) {
-            case "#":
-              view.ctx.fillStyle = "#bbbbbb";
-              view.ctx.fillRect(tileX, tileY, tileW, tileH);
-              view.ctx.fillText("\u{1F9F1}", tileX + tileMid, tileY + tileMid + 2);
-              break;
-            case " ":
-              view.ctx.fillStyle = "#C5BE9A";
-              view.ctx.fillText("\xB7", tileX + tileMid, tileY + tileMid + 3);
-              break;
-            case ".":
-              view.ctx.fillStyle = "#5bbf44";
-              view.ctx.fillRect(tileX + 3, tileY + 3, tileW - 6, tileH - 6);
-              view.ctx.fillStyle = "#146e00";
-              view.ctx.fillText("\xB7", tileX + tileMid, tileY + tileMid + 3);
-              break;
-          }
-        }
-      }
-      view.ctx.fillText(
-        "\u{1F9D1}\u200D\u{1F3ED}",
-        Math.round(model.scale * game.hero.e * TILE_WIDTH + tileW / 2),
-        Math.round(model.scale * game.hero.s * TILE_HEIGHT + tileH / 2) + 2
-      );
-      for (const box of game.boxes) {
-        const tileX = Math.round(model.scale * box.e * TILE_WIDTH);
-        const tileY = Math.round(model.scale * box.s * TILE_HEIGHT);
-        view.ctx.fillText("\u{1F4E6}", tileX + Math.round(tileW / 2), tileY + Math.round(tileH / 2) + 2);
-      }
-    }
     function setLevel(id) {
       replay.length = 0;
       model.levelId = id;
@@ -2348,8 +2347,8 @@ var App = (() => {
       setReplayStyle();
       setNextStyle();
       setUndoStyle();
-      scaleCanvas();
-      render();
+      scaleCanvas(view.board, game, model.scale);
+      render(view.board, game, model.scale);
     }
     function markGameSolved() {
       if (!model.solvedIds.includes(model.levelId)) {
@@ -2428,13 +2427,12 @@ var App = (() => {
         case "=":
           event.preventDefault();
           if (model.scale < 3) model.scale += 0.2;
-          scaleCanvas();
-          storeGame(model);
+          scaleCanvas(view.board, game, model.scale);
           break;
         case "-":
           event.preventDefault();
           if (model.scale > 0.4) model.scale -= 0.2;
-          scaleCanvas();
+          scaleCanvas(view.board, game, model.scale);
           storeGame(model);
           break;
         case "ArrowUp":
@@ -2479,7 +2477,7 @@ var App = (() => {
           undoMove();
           break;
       }
-      render();
+      render(view.board, game, model.scale);
       setUndoStyle();
       setResetStyle();
       if (isSolved(game)) {
@@ -2493,7 +2491,7 @@ var App = (() => {
       isReplaying = true;
       game = structuredClone(levels[model.levelId]);
       replay.length = 0;
-      render();
+      render(view.board, game, model.scale);
       const time_step = 200;
       setTimeout(loop, time_step, 0);
       function loop(i) {
@@ -2519,7 +2517,7 @@ var App = (() => {
             doMove(game, EDir.down);
             break;
         }
-        render();
+        render(view.board, game, model.scale);
         setTimeout(loop, time_step, i + 1);
       }
     }
@@ -2584,7 +2582,7 @@ var App = (() => {
       event.preventDefault();
       if (isReplaying) return;
       undoMove();
-      render();
+      render(view.board, game, model.scale);
       setUndoStyle();
     }
   }

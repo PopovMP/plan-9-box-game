@@ -3,10 +3,10 @@ import {
   moveBox, makePointNext, areGameEqual,
 } from "./game-engine.ts";
 import { easyLevels } from "./easy-levels.ts";
+import { render, scaleCanvas } from "./renderer.ts";
 
 interface IView {
   board  : HTMLCanvasElement;
-  ctx    : CanvasRenderingContext2D;
   levelId: HTMLElement;
   solved : HTMLElement;
   replay : HTMLElement;
@@ -17,8 +17,6 @@ interface IView {
 }
 
 export function main(): void {
-  const TILE_WIDTH  = 32;
-  const TILE_HEIGHT = 32;
   const levels: IGame[]    = easyLevels;
   const model : IGameModel = loadGame();
   const replay: number[]   = [];
@@ -33,7 +31,6 @@ export function main(): void {
     info   : document.getElementById("game-info"   ) as HTMLElement,
     undo   : document.getElementById("move-undo"   ) as HTMLElement,
   } as IView;
-  view.ctx = view.board.getContext("2d") as CanvasRenderingContext2D;
 
   let game: IGame;
   let isReplaying = false;
@@ -44,70 +41,6 @@ export function main(): void {
   view.reset .addEventListener("click", onReset);
   view.next  .addEventListener("click", onNext);
   view.undo  .addEventListener("click", onUndo);
-
-  function scaleCanvas(): void{
-    const mapTileHeight = game.map.length;
-    let mapTileWidth  = 0;
-    for (const line of game.map) {
-      if (line.length > mapTileWidth) {
-        mapTileWidth = line.length;
-      }
-    }
-
-    const canvasWidth  = Math.round(model.scale * TILE_WIDTH  * mapTileWidth);
-    const canvasHeight = Math.round(model.scale * TILE_HEIGHT * mapTileHeight);
-
-    view.board.width  = canvasWidth;
-    view.board.height = canvasHeight;
-  }
-
-  function render(): void {
-    view.ctx.fillStyle = "#DED6AE";
-    view.ctx.fillRect(0, 0, view.ctx.canvas.width, view.ctx.canvas.height);
-
-    const tileH = model.scale * TILE_HEIGHT;
-    const tileW = model.scale * TILE_WIDTH;
-    view.ctx.textBaseline = "middle";
-    view.ctx.textAlign    = "center";
-    view.ctx.font         = Math.round(tileH - 4) + "px Sansserif";
-
-    for (let s = 0; s < game.map.length; s++) {
-    for (let e = 0; e < game.map[s].length; e++) {
-      const tileX   = Math.round(model.scale * e * TILE_WIDTH);
-      const tileY   = Math.round(model.scale * s * TILE_HEIGHT);
-      const tileMid = Math.round(tileW / 2);
-
-      // Draw map
-      switch (game.map[s][e]) {
-        case "#": // Wall
-          view.ctx.fillStyle = "#bbbbbb";
-          view.ctx.fillRect(tileX, tileY, tileW, tileH);
-          view.ctx.fillText("🧱", tileX + tileMid, tileY + tileMid + 2);
-          break;
-        case " ": // Floor
-          view.ctx.fillStyle = "#C5BE9A";
-          view.ctx.fillText("·", tileX + tileMid, tileY + tileMid + 3);
-          break;
-        case ".": // Goal
-          view.ctx.fillStyle = "#5bbf44";
-          view.ctx.fillRect(tileX+3, tileY+3, tileW-6, tileH-6);
-          view.ctx.fillStyle = "#146e00";
-          view.ctx.fillText("·", tileX + tileMid, tileY + tileMid + 3);
-          break;
-      }
-    }}
-
-    // Draw hero
-    view.ctx.fillText("🧑‍🏭", Math.round(model.scale * game.hero.e * TILE_WIDTH  + (tileW / 2)),
-                            Math.round(model.scale * game.hero.s * TILE_HEIGHT + (tileH / 2)) + 2);
-
-    // Draw boxes
-    for (const box of game.boxes) {
-      const tileX = Math.round(model.scale * box.e * TILE_WIDTH);
-      const tileY = Math.round(model.scale * box.s * TILE_HEIGHT);
-      view.ctx.fillText("📦", tileX + Math.round(tileW / 2), tileY + Math.round(tileH / 2) + 2);
-    }
-  }
 
   function setLevel(id: number): void {
     replay.length = 0;
@@ -122,8 +55,8 @@ export function main(): void {
     setReplayStyle();
     setNextStyle();
     setUndoStyle();
-    scaleCanvas();
-    render();
+    scaleCanvas(view.board, game, model.scale);
+    render(view.board, game, model.scale);
   }
 
   function markGameSolved(): void {
@@ -217,13 +150,12 @@ export function main(): void {
       case "=":
         event.preventDefault();
         if (model.scale < 3) model.scale += 0.2;
-        scaleCanvas();
-        storeGame(model);
+        scaleCanvas(view.board, game, model.scale);
         break;
       case "-":
         event.preventDefault();
         if (model.scale > 0.4) model.scale -= 0.2;
-        scaleCanvas();
+        scaleCanvas(view.board, game, model.scale);
         storeGame(model);
         break;
       case "ArrowUp":
@@ -271,7 +203,7 @@ export function main(): void {
         break;
     }
 
-    render();
+    render(view.board, game, model.scale);
     setUndoStyle();
     setResetStyle();
     if (isSolved(game)) {
@@ -287,7 +219,7 @@ export function main(): void {
     isReplaying = true;
     game = structuredClone(levels[model.levelId]);
     replay.length = 0;
-    render();
+    render(view.board, game, model.scale);
 
     const time_step = 200;
     setTimeout(loop, time_step, 0);
@@ -317,7 +249,7 @@ export function main(): void {
           break;
         }
 
-      render();
+      render(view.board, game, model.scale);
       setTimeout(loop, time_step, i + 1);
     }
   }
@@ -379,7 +311,7 @@ export function main(): void {
     event.preventDefault();
     if (isReplaying) return;
     undoMove();
-    render();
+    render(view.board, game, model.scale);
     setUndoStyle();
   }
 }
