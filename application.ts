@@ -1,10 +1,8 @@
-import {
-  type IGame, type IGameModel, EDir, canMove, doMove, isSolved, loadGame, storeGame,
-  moveBox, makePointNext, areGameEqual,
-} from "./game-engine.ts";
+import { type IGame, type ILevel, type IGameModel, EDir } from "./def.ts";
+import { canMove, doMove, isSolved, loadGame, storeGame, moveBox, makePointNext, areGameEqual } from "./game-engine.ts";
 import { easyLevels } from "./easy-levels.ts";
 import { render, scaleCanvas } from "./renderer.ts";
-import { makeGoodMap, findPossibleMoves, makeBoxMap, makeStepMap } from "./solver.ts";
+import { initGoodMap, setGoodMap, setPossibleMoves, initBoxMap, setBoxMap, initStepMap, setStepMap } from "./solver.ts";
 
 interface IView {
   board  : HTMLCanvasElement;
@@ -18,7 +16,7 @@ interface IView {
 }
 
 export function main(): void {
-  const levels: IGame[]    = easyLevels;
+  const levels: ILevel[]   = easyLevels;
   const model : IGameModel = loadGame();
   const replay: number[]   = [];
 
@@ -46,11 +44,15 @@ export function main(): void {
   function setLevel(id: number): void {
     replay.length = 0;
     model.levelId = id;
-    game = structuredClone(levels[model.levelId]);
-    game.boxMap  = makeBoxMap(game);
-    game.goodMap = makeGoodMap(game.map);
-    game.stepMap = makeStepMap(game);
-    game.possibleMoves = findPossibleMoves(game);
+    game = structuredClone(levels[model.levelId]) as IGame;
+    game.possibleMoves = new Array(game.boxes.length).fill(0);
+    initGoodMap(game);
+    initBoxMap(game);
+    initStepMap(game);
+    setGoodMap(game);
+    setBoxMap(game);
+    setStepMap(game);
+    setPossibleMoves(game);
 
     view.levelId.textContent = (model.levelId + 1).toString();
     view.info.innerHTML = `Solved <strong>${model.solvedIds.length}</strong>
@@ -209,9 +211,9 @@ export function main(): void {
         break;
     }
 
-    game.boxMap        = makeBoxMap(game);
-    game.stepMap       = makeStepMap(game);
-    game.possibleMoves = findPossibleMoves(game);
+    setBoxMap(game);
+    setStepMap(game);
+    setPossibleMoves(game);
     render(view.board, game, model.scale);
     if (isSolved(game)) {
       markGameSolved();
@@ -226,9 +228,8 @@ export function main(): void {
     if (!Array.isArray(model.replays[model.levelId]) ||
         model.replays[model.levelId].length === 0) return;
     isReplaying = true;
-    game = structuredClone(levels[model.levelId]);
-    replay.length = 0;
-    render(view.board, game, model.scale);
+
+    setLevel(model.levelId);
 
     const time_step = 200;
     setTimeout(loop, time_step, 0);
@@ -256,8 +257,11 @@ export function main(): void {
         case EDir.pushDown:
           doMove(game, EDir.down);
           break;
-        }
+      }
 
+      setBoxMap(game);
+      setStepMap(game);
+      setPossibleMoves(game);
       render(view.board, game, model.scale);
       setTimeout(loop, time_step, i + 1);
     }
@@ -303,9 +307,11 @@ export function main(): void {
       } break;
     }
 
-    game.boxMap        = makeBoxMap(game);
-    game.stepMap       = makeStepMap(game);
-    game.possibleMoves = findPossibleMoves(game);
+    setBoxMap(game);
+    setStepMap(game);
+    setPossibleMoves(game);
+    setUndoStyle();
+    setResetStyle();
   }
 
   function onReset(event: Event): void {

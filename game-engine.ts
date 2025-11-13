@@ -1,38 +1,6 @@
-export interface IPoint {
-  s: number; // South coordinate
-  e: number; // East coordinate
-}
+import { type ILevel, type IPoint, type IGame, type IGameModel, EDir } from "./def.ts";
 
-export interface IGame {
-  id     : number,
-  hero   : IPoint,
-  boxes  : IPoint[],
-  map    : string[],
-  boxMap ?: boolean[][],
-  goodMap?: boolean[][],
-  stepMap?: boolean[][],
-  possibleMoves?: number[],
-}
-
-export interface IGameModel {
-  scale    : number;
-  levelId  : number;
-  solvedIds: number[];
-  replays  : number[][];
-}
-
-export const EDir = {
-  up       :  1,
-  right    :  2,
-  left     :  3,
-  down     :  4,
-  pushUp   : 11,
-  pushRight: 12,
-  pushLeft : 13,
-  pushDown : 14,
-};
-
-export function areGameEqual(gameA: IGame, gameB: IGame): boolean {
+export function areGameEqual(gameA: ILevel, gameB: ILevel): boolean {
   if (!isPointEq(gameA.hero, gameB.hero)) return false;
 
   // BUG: Gets different games when boxes switch places

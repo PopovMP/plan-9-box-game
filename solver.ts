@@ -1,129 +1,111 @@
-import { type IGame } from "./game-engine.ts";
+import { type IGame, UP, LEFT, RIGHT, DOWN } from "./def.ts";
 
-
-export const UP    = 0b0000_0001;
-export const RIGHT = 0b0000_0010;
-export const LEFT  = 0b0000_0100;
-export const DOWN  = 0b0000_1000;
-
-export function makeBoxMap(game: IGame): boolean[][] {
+export function initBoxMap(game: IGame): void {
   const mapWidth = game.map[0].length;
-  const boxMap: boolean[][] = new Array(game.map.length);
-  for (let i = 0; i < mapWidth; i++) {
-    boxMap[i] = new Array(mapWidth).fill(false);
+  game.boxMap = new Array(game.map.length);
+  for (let i = 0, len = game.map.length; i < len; i++) {
+    game.boxMap[i] = new Array(mapWidth).fill(false);
   }
+}
+
+export function setBoxMap(game: IGame): void {
+  const boxMap = game.boxMap;
+  // Reset the map
+  for (let i = 0, len = game.map.length; i < len; i++) {
+    boxMap[i].fill(false);
+  }
+
+  // Set the boxes
   for (const box of game.boxes) {
     boxMap[box.s][box.e] = true;
   }
-
-  return boxMap;
 }
 
-export function makeGoodMap(gameMap: string[]): boolean[][] {
-  const mapWidth: number = gameMap[0].length;
-  const flagMap: boolean[][] = new Array(gameMap.length);
-  for (let i = 0; i < gameMap.length; i++) {
-    flagMap[i] = new Array(mapWidth).fill(false);
+export function initGoodMap(game: IGame): void {
+  const mapWidth = game.map[0].length;
+  game.goodMap = new Array(game.map.length);
+  for (let i = 0, len = game.map.length; i < len; i++) {
+    game.goodMap[i] = new Array(mapWidth).fill(false);
+  }
+}
+
+export function setGoodMap(game: IGame): void {
+  const mapWidth: number = game.map[0].length;
+  const gameMap = game.map;
+  const goodMap = game.goodMap;
+
+  // Reset goodMap
+  for (let i = 1, len = gameMap.length; i < len - 1; i++) {
+    goodMap[i] = new Array(mapWidth).fill(false);
   }
 
   let isChanged;
   do {
     isChanged = false;
-    for (let i = 1; i < gameMap.length - 1; i++) {
-    for (let j = 1; j < mapWidth - 1;       j++) {
+    for (let i = 1, len = gameMap.length; i < len - 1; i++) {
+    for (let j = 1; j < mapWidth - 1; j++) {
       let ch: string;
-      if (flagMap[i][j]) continue;
+      if (goodMap[i][j]) continue;
       if ((ch = gameMap[i][j]) === "#" || ch === "_") continue;
 
       // It is goal tile
       if (gameMap[i][j] === ".") {
-        flagMap[i][j] = true;
+        goodMap[i][j] = true;
         isChanged = true;
         continue;
       }
 
       if (
-        (flagMap[i-1][j  ] && ((ch = gameMap[i+1][j  ]) === " " || ch === ".")) ||
-        (flagMap[i  ][j+1] && ((ch = gameMap[i  ][j-1]) === " " || ch === ".")) ||
-        (flagMap[i+1][j  ] && ((ch = gameMap[i-1][j  ]) === " " || ch === ".")) ||
-        (flagMap[i  ][j-1] && ((ch = gameMap[i  ][j+1]) === " " || ch === "."))
+        (goodMap[i-1][j  ] && ((ch = gameMap[i+1][j  ]) === " " || ch === ".")) ||
+        (goodMap[i  ][j+1] && ((ch = gameMap[i  ][j-1]) === " " || ch === ".")) ||
+        (goodMap[i+1][j  ] && ((ch = gameMap[i-1][j  ]) === " " || ch === ".")) ||
+        (goodMap[i  ][j-1] && ((ch = gameMap[i  ][j+1]) === " " || ch === "."))
       ) {
-        flagMap[i][j] = true;
+        goodMap[i][j] = true;
         isChanged = true;
         continue;
       }
     }}
   } while (isChanged);
-
-  return flagMap;
 }
 
-export function findPossibleMoves(game: IGame): number[] {
-  const out: number[] = [];
-
-  if (!game.goodMap ) return out;
-  if (!game.boxMap  ) return out;
-  if (!game.stepMap ) return out;
-
-  const goodMap = game.goodMap;
-  const stepMap = game.stepMap;
-  const boxMap  = game.boxMap;
-
-  for (const box of game.boxes) {
-    let dir = 0;
-    const s = box.s;
-    const e = box.e;
-
-    if (goodMap[s-1][e] && stepMap[s+1][e] && !boxMap[s-1][e] && !boxMap[s+1][e]) {
-      dir |= UP;
-    }
-    if (goodMap[s][e+1] && stepMap[s][e-1] && !boxMap[s][e+1] && !boxMap[s][e-1]) {
-      dir |= RIGHT;
-    }
-    if (goodMap[s][e-1] && stepMap[s][e+1] && !boxMap[s][e+1] && !boxMap[s][e-1]) {
-      dir |= LEFT;
-    }
-    if (goodMap[s+1][e] && stepMap[s-1][e] && !boxMap[s+1][e] && !boxMap[s-1][e]) {
-      dir |= DOWN;
-    }
-
-    out.push(s * 10000 + e * 100 + dir);
+export function initStepMap(game: IGame): void {
+  const mapWidth = game.map[0].length;
+  game.stepMap = new Array(game.map.length);
+  for (let i = 0, len = game.map.length; i < len; i++) {
+    game.stepMap[i] = new Array(mapWidth).fill(false);
   }
-
-  return out;
 }
 
-export function makeStepMap(game: IGame): boolean[][] {
+export function setStepMap(game: IGame): boolean[][] {
   const gameMap = game.map;
   const mapWidth: number = gameMap[0].length;
-  const boxMap : boolean[][] | undefined = game.boxMap;
-  const stepMap: boolean[][] = new Array(gameMap.length);
-  for (let i = 0; i < gameMap.length; i++) {
+  const boxMap : boolean[][] = game.boxMap;
+  const stepMap: boolean[][] = game.stepMap;
+
+  // Reset stepMap
+  for (let i = 0, len = gameMap.length; i < len; i++) {
     stepMap[i] = new Array(mapWidth).fill(false);
   }
-  if (!boxMap) return stepMap;
 
+  // It is the hero tile
+  stepMap[game.hero.s][game.hero.e] = true;
+
+  // Set stepMap
   let isChanged;
   do {
     isChanged = false;
-    for (let i = 1; i < gameMap.length - 1; i++) {
-    for (let j = 1; j < mapWidth - 1;       j++) {
+    for (let i = 1, len = gameMap.length; i < len - 1; i++) {
+    for (let j = 1; j < mapWidth - 1; j++) {
       let ch: string;
       if (stepMap[i][j]) continue;
       if ((ch = gameMap[i][j]) === "#" || ch === "_" || boxMap[i][j]) continue;
 
-      // It is the hero tile
-      if (i === game.hero.s && j === game.hero.e) {
-        stepMap[i][j] = true;
-        isChanged = true;
-        continue;
-      }
-
       if (
-        (stepMap[i-1][j  ]) ||
-        (stepMap[i  ][j+1]) ||
-        (stepMap[i+1][j  ]) ||
-        (stepMap[i  ][j-1])
+        stepMap[i-1][j  ] ||
+        stepMap[i  ][j+1] ||
+        stepMap[i+1][j  ] ||
+        stepMap[i  ][j-1]
       ) {
         stepMap[i][j] = true;
         isChanged = true;
@@ -133,4 +115,36 @@ export function makeStepMap(game: IGame): boolean[][] {
   } while (isChanged);
 
   return stepMap;
+}
+
+export function setPossibleMoves(game: IGame): void {
+  const goodMap = game.goodMap;
+  const stepMap = game.stepMap;
+  const boxMap  = game.boxMap;
+  game.possibleMoves.fill(0);
+
+  let i = 0;
+  for (const box of game.boxes) {
+    let dir = 0;
+    const s = box.s;
+    const e = box.e;
+
+    if (goodMap[s-1][e] && stepMap[s+1][e] && !boxMap[s+1][e] && !boxMap[s-1][e]) {
+      dir |= UP;
+    }
+    if (goodMap[s+1][e] && stepMap[s-1][e] && !boxMap[s+1][e] && !boxMap[s-1][e]) {
+      dir |= DOWN;
+    }
+    if (goodMap[s][e+1] && stepMap[s][e-1] && !boxMap[s][e+1] && !boxMap[s][e-1]) {
+      dir |= RIGHT;
+    }
+    if (goodMap[s][e-1] && stepMap[s][e+1] && !boxMap[s][e+1] && !boxMap[s][e-1]) {
+      dir |= LEFT;
+    }
+
+    if (dir !== 0) {
+      game.possibleMoves[i] = s * 10000 + e * 100 + dir;
+      i++;
+    }
+  }
 }

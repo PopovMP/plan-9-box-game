@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 import process from "node:process";
 import console from "node:console";
 
-import { type IPoint, type IGame } from "./game-engine.ts";
+import { type IPoint, type ILevel } from "./def.ts";
 
 if (process.argv.length < 3) {
   console.log("Too few arguments!");
@@ -23,7 +23,7 @@ function main(inputFilename: string): void {
   const inputPath: string = joinPath(__dirname, inputFilename);
   const content  : string = readFileSync(inputPath, { encoding: "utf8" });
 
-  const levels: IGame[] = [];
+  const levels: ILevel[] = [];
   parseLevels(levels, content);
 
   const inputBasename: string = getBasename(inputFilename, ".txt");
@@ -32,10 +32,10 @@ function main(inputFilename: string): void {
   writeFileSync(outputPath, outputContent, { encoding: "utf8" });
 }
 
-function parseLevels(levels: IGame[], content: string): void {
+function parseLevels(levels: ILevel[], content: string): void {
   let pos = 0;
   while (isGoodChar(content, pos)) {
-    const level: IGame = {
+    const level: ILevel = {
       id   : 0,
       hero : {s: 0, e: 0} as IPoint,
       boxes: [] as IPoint[],
@@ -49,7 +49,7 @@ function parseLevels(levels: IGame[], content: string): void {
   }
 }
 
-function parseLevel(level: IGame, content: string, pos: number): number {
+function parseLevel(level: ILevel, content: string, pos: number): number {
   pos = parseComment(level, content, pos);
 
   while (isGoodChar(content, pos)) {
@@ -59,7 +59,7 @@ function parseLevel(level: IGame, content: string, pos: number): number {
   return eatEOL(content, pos);
 }
 
-function parseComment(level: IGame, content: string, pos: number): number {
+function parseComment(level: ILevel, content: string, pos: number): number {
   const ch: string = content[pos];
   if (ch !== ";") throw new Error(`Expecting ';' at pos ${pos}`);
   const zeroCharCode: number = "0".charCodeAt(0);
@@ -76,7 +76,7 @@ function parseComment(level: IGame, content: string, pos: number): number {
   return eatEOL(content, pos);
 }
 
-function parseMapLine(level: IGame, content: string, pos: number): number {
+function parseMapLine(level: ILevel, content: string, pos: number): number {
   let ch: string = content[pos];
   if (ch !== " " && ch !== "#") throw new Error(`Expecting ' ' or '#' at pos: ${pos}`);
 
@@ -198,12 +198,12 @@ function normalizeLevelMap(gameMap: string[]): string[] {
   return outMap;
 }
 
-function stringifyLevels(levels: IGame[], inputBasename: string): string {
+function stringifyLevels(levels: ILevel[], inputBasename: string): string {
   return "" +
-    'import { type IGame } from "./game-engine.ts";\n' +
+    'import { type ILevel } from "./def.ts";\n' +
     "\n" +
-    `export const ${toCamelCase(inputBasename)}: IGame[] = [{\n` +
-    levels.map((level: IGame): string => "" +
+    `export const ${toCamelCase(inputBasename)}: ILevel[] = [{\n` +
+    levels.map((level: ILevel): string => "" +
     `    id   : ${level.id},\n` +
     `    hero : {s: ${level.hero.s}, e: ${level.hero.e}},\n` +
     `    boxes: [${level.boxes.map((b: IPoint): string => `{s: ${b.s}, e: ${b.e}}`).join(", ")}],\n` +
