@@ -2263,8 +2263,6 @@ var App = (() => {
     const ctx = canvas.getContext("2d");
     const tileSize = scale * TILE_SIZE;
     const dotR = 2 * scale;
-    const dotStart = 0;
-    const dotEnd = 2 * Math.PI;
     ctx.fillStyle = "#DED6AE";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.textBaseline = "middle";
@@ -2283,18 +2281,12 @@ var App = (() => {
             ctx.fillText("\u{1F9F1}", midX, midY);
             break;
           case " ":
-            ctx.beginPath();
-            ctx.fillStyle = "#C5BE9A";
-            ctx.arc(midX, midY, dotR, dotStart, dotEnd);
-            ctx.fill();
+            drawDot(midX, midY, dotR, "#C5BE9A");
             break;
           case ".":
             ctx.fillStyle = "#5bbf44";
             ctx.fillRect(tileX + 3, tileY + 3, tileSize - 6, tileSize - 6);
-            ctx.beginPath();
-            ctx.fillStyle = "#146e00";
-            ctx.arc(midX, midY, dotR, dotStart, dotEnd);
-            ctx.fill();
+            drawDot(midX, midY, dotR, "#146e00");
             break;
         }
       }
@@ -2308,6 +2300,12 @@ var App = (() => {
       const tileX = box.e * tileSize;
       const tileY = box.s * tileSize;
       ctx.fillText("\u{1F4E6}", tileX + tileSize / 2, tileY + tileSize / 2);
+    }
+    function drawDot(x, y, r, color) {
+      ctx.beginPath();
+      ctx.fillStyle = color;
+      ctx.arc(x, y, r, 0, 2 * Math.PI);
+      ctx.fill();
     }
   }
 
