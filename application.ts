@@ -209,11 +209,9 @@ export function main(): void {
         break;
     }
 
-    const timeNow = Date.now();
     game.boxMap        = makeBoxMap(game);
     game.stepMap       = makeStepMap(game);
     game.possibleMoves = findPossibleMoves(game);
-    console.log("Time: " +  (Date.now() - timeNow));
     render(view.board, game, model.scale);
     if (isSolved(game)) {
       markGameSolved();
