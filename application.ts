@@ -204,11 +204,11 @@ export function main(): void {
     }
 
     render(view.board, game, model.scale);
-    setUndoStyle();
-    setResetStyle();
     if (isSolved(game)) {
       markGameSolved();
     }
+    setUndoStyle();
+    setResetStyle();
   }
 
   function onReplay(event: Event): void {
