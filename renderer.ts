@@ -1,4 +1,6 @@
-import { type IGame, UP, LEFT, RIGHT, DOWN } from "./def.ts";
+import { type IGame,
+//  UP, LEFT, RIGHT, DOWN,
+} from "./def.ts";
 
 const TILE_SIZE = 32;
 
@@ -58,53 +60,53 @@ export function render(canvas: HTMLCanvasElement, game: IGame, scale: number): v
     ctx.fillText("📦", tileX + tileSize / 2, tileY + tileSize / 2);
   }
 
-  // Mark good tiles
-  for (let s = 0; s < game.map.length; s++) {
-  for (let e = 0; e < game.map[s].length; e++) {
-    if (game.goodMap[s][e]) {
-      const tileX: number = e * tileSize;
-      const tileY: number = s * tileSize;
-      const midX : number = tileX + tileSize / 2;
-      const midY : number = tileY + tileSize / 2;
-      drawDot(midX, midY, 2*dotR, "#f8a100ff");
-    }
-  }}
+  // // Mark good tiles
+  // for (let s = 0; s < game.map.length; s++) {
+  // for (let e = 0; e < game.map[s].length; e++) {
+  //   if (game.goodMap[s][e]) {
+  //     const tileX: number = e * tileSize;
+  //     const tileY: number = s * tileSize;
+  //     const midX : number = tileX + tileSize / 2;
+  //     const midY : number = tileY + tileSize / 2;
+  //     drawDot(midX, midY, 2*dotR, "#f8a100ff");
+  //   }
+  // }}
 
-  // Mark step tiles
-  for (let s = 0; s < game.map.length; s++) {
-  for (let e = 0; e < game.map[s].length; e++) {
-    if (game.stepMap[s][e]) {
-      const tileX: number = e * tileSize;
-      const tileY: number = s * tileSize;
-      const midX : number = tileX + tileSize / 2;
-      const midY : number = tileY + tileSize / 2;
-      drawDot(midX, midY, 1.2*dotR, "#3600f8ff");
-    }
-  }}
+  // // Mark step tiles
+  // for (let s = 0; s < game.map.length; s++) {
+  // for (let e = 0; e < game.map[s].length; e++) {
+  //   if (game.stepMap[s][e]) {
+  //     const tileX: number = e * tileSize;
+  //     const tileY: number = s * tileSize;
+  //     const midX : number = tileX + tileSize / 2;
+  //     const midY : number = tileY + tileSize / 2;
+  //     drawDot(midX, midY, 1.2*dotR, "#3600f8ff");
+  //   }
+  // }}
 
-  // Mark possible moves
-  for (const move of game.possibleMoves) {
-    if (move === 0) break;
-    const tWidth = scale * TILE_SIZE;
-    const ts  = Math.trunc(move / 10000);
-    const te  = Math.trunc(move / 100) % 100;
-    const s   = ts * tWidth;
-    const e   = te * tWidth;
-    const mid = scale * (TILE_SIZE / 2);
-    const dir = move % 100;
-    if (dir & UP) {
-      drawDot(e + mid, s + 3, 3, "#000000");
-    }
-    if (dir & RIGHT) {
-      drawDot(e + tWidth - 3, s + mid, 3, "#000000");
-    }
-    if (dir & LEFT) {
-      drawDot(e +  3, s + mid, 3, "#000000");
-    }
-    if (dir & DOWN) {
-      drawDot(e + mid, s + tWidth - 3, 3, "#000000");
-    }
-  }
+  // // Mark possible moves
+  // for (const move of game.possibleMoves) {
+  //   if (move === 0) break;
+  //   const tWidth = scale * TILE_SIZE;
+  //   const ts  = Math.trunc(move / 10000);
+  //   const te  = Math.trunc(move / 100) % 100;
+  //   const s   = ts * tWidth;
+  //   const e   = te * tWidth;
+  //   const mid = scale * (TILE_SIZE / 2);
+  //   const dir = move % 100;
+  //   if (dir & UP) {
+  //     drawDot(e + mid, s + 3, 3, "#000000");
+  //   }
+  //   if (dir & RIGHT) {
+  //     drawDot(e + tWidth - 3, s + mid, 3, "#000000");
+  //   }
+  //   if (dir & LEFT) {
+  //     drawDot(e +  3, s + mid, 3, "#000000");
+  //   }
+  //   if (dir & DOWN) {
+  //     drawDot(e + mid, s + tWidth - 3, 3, "#000000");
+  //   }
+  // }
 
   function drawDot(x: number, y: number, r: number, color: string): void {
     ctx.beginPath();
