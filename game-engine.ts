@@ -1,73 +1,62 @@
-import { type IPoint, type IGame, type IGameModel, EDir } from "./def.ts";
+import { type IGame, type IGameModel, type ILevel, UP, LEFT, RIGHT, DOWN, PUSH } from "./def.ts";
 
-function isPointEq(p1: IPoint, p2: IPoint): boolean {
-  return p1.s === p2.s && p1.e === p2.e;
-}
-
-export function makePointNext(point: IPoint, ds: number, de: number): IPoint {
-  return {s: point.s + ds, e: point.e + de};
-}
-
-function movePoint(point: IPoint, ds: number, de: number): void {
-  point.s += ds;
-  point.e += de;
-}
-
-export function moveBox(game: IGame, fromPos: IPoint, ds: number, de: number): void {
-  for (const box of game.boxes) {
-    if (isPointEq(box, fromPos)) {
-      movePoint(box, ds, de);
+export function moveBox(boxesPos: number[], pos: number, dir: number): void {
+  for (let i = 0; i < boxesPos.length; i++) {
+    const boxPos = boxesPos[i];
+    if (boxPos === pos) {
+      const s = Math.trunc(boxPos / 100);
+      const e = boxPos % 100;
+           if (dir & UP   ) boxesPos[i] = (s-1) * 100 + e;
+      else if (dir & DOWN ) boxesPos[i] = (s+1) * 100 + e;
+      else if (dir & LEFT ) boxesPos[i] = s * 100 + (e-1);
+      else if (dir & RIGHT) boxesPos[i] = s * 100 + (e+1);
       break;
     }
   }
+  boxesPos.sort();
 }
 
-function getMapCharAt(game: IGame, pos: IPoint): string {
-  if (
-    pos.s >= 0 && pos.s < game.map.length &&
-    pos.e >= 0 && pos.e < game.map[pos.s].length
-  ) {
-    return game.map[pos.s][pos.e];
-  }
-
-  return "";
+function getMapCharAt(game: IGame, pos: number): string {
+  const s = Math.trunc(pos / 100);
+  const e = pos % 100;
+  return game.map[s][e];
 }
 
-function isBoxAt(game: IGame, pos: IPoint): boolean {
-  for (const box of game.boxes) {
-    if (isPointEq(box, pos)) return true;
-  }
-
-  return false;
+function isBoxAt(boxesPos: number[], pos: number): boolean {
+  return boxesPos.includes(pos);
 }
 
 // Gets if there is a steppable floor tile at pos
-function isFloorAt(game: IGame, pos: IPoint): boolean {
+function isFloorAt(game: IGame, pos: number): boolean {
   const char: string = getMapCharAt(game, pos);
   return char === " " || char === ".";
 }
 
-function isFreeAt(game: IGame, pos: IPoint): boolean {
-    return isFloorAt(game, pos) && !isBoxAt(game, pos);
+function isFreeAt(game: IGame, pos: number): boolean {
+    return isFloorAt(game, pos) && !isBoxAt(game.boxesPos, pos);
 }
 
-export function canMove(game: IGame, ds: number, de: number): number {
-  const posNext: IPoint = makePointNext(game.hero, ds, de);
-  let dir = 0;
+export function makePointNext(pos: number, dir: number): number {
+  const s = Math.trunc(pos / 100);
+  const e = pos % 100;
 
-  if (isFloorAt(game, posNext)) {
-      if      (ds === -1) dir += EDir.up;
-      else if (de ===  1) dir += EDir.right;
-      else if (de === -1) dir += EDir.left;
-      else if (ds ===  1) dir += EDir.down;
-  } else {
-    return 0;
-  }
+  if (dir & UP   ) return (s-1) * 100 + e;
+  if (dir & DOWN ) return (s+1) * 100 + e;
+  if (dir & LEFT ) return s * 100 + (e-1);
+  if (dir & RIGHT) return s * 100 + (e+1);
 
-  if (isBoxAt(game, posNext)) {
-      const posNexter: IPoint = makePointNext(posNext, ds, de);
+  throw new Error(`Unreachble. Wrong dir: ${dir}`);
+}
+
+export function canMove(game: IGame, dir: number): number {
+  const posNext: number = makePointNext(game.heroPos, dir);
+
+  if (!isFloorAt(game, posNext)) return 0;
+
+  if (isBoxAt(game.boxesPos, posNext)) {
+      const posNexter: number = makePointNext(posNext, dir);
       if (isFreeAt(game, posNexter)) {
-        dir += 10;
+        return PUSH | dir;
       } else {
         return 0;
       }
@@ -77,29 +66,19 @@ export function canMove(game: IGame, ds: number, de: number): number {
 }
 
 export function doMove(game: IGame, dir: number): void {
-  const ds = dir === EDir.up   || dir === EDir.pushUp   ? -1
-           : dir === EDir.down || dir === EDir.pushDown ?  1
-                                                        : 0;
+  const posNext: number = makePointNext(game.heroPos, dir);
 
-  const de = dir === EDir.left  || dir === EDir.pushLeft  ? -1
-           : dir === EDir.right || dir === EDir.pushRight ?  1
-                                                          : 0;
-
-  const posNext: IPoint = makePointNext(game.hero, ds, de);
-
-  if (isBoxAt(game, posNext)) {
-    const posNexter: IPoint = makePointNext(posNext, ds, de);
+  if (isBoxAt(game.boxesPos, posNext)) {
+    const posNexter: number = makePointNext(posNext, dir);
     if (isFreeAt(game, posNexter)) {
-      moveBox(game, posNext, ds, de);
-      game.boxesPos = game.boxes.map(b => b.s * 100 + b.e).sort();
+      moveBox(game.boxesPos, posNext, dir);
     } else {
       throw new Error(`Cannot move a box at: ${posNexter}`);
     }
   }
 
   if (isFreeAt(game, posNext)) {
-    movePoint(game.hero, ds, de);
-    game.heroPos = game.hero.s * 100 + game.hero.e;
+    game.heroPos = posNext;
   } else {
     throw new Error(`Cannot move the hero at: ${posNext}`);
   }
@@ -154,40 +133,49 @@ export function loadGame(): IGameModel {
   return model;
 }
 
-export function initGameState(game: IGame): void {
-  // ssee
-  game.heroPos  = game.hero.s * 100 + game.hero.e;
-  game.boxesPos = game.boxes.map(b => b.s * 100 + b.e).sort();
-  game.boxesId  = getNumArrId(game.boxesPos);
-  game.gameId   = (31 * game.heroPos * game.boxesId) >>> 0;
+export function initGameState(level: ILevel): IGame {
+  const game: IGame = {
+    map          : structuredClone(level.map),
+    boxMap       : [],
+    goodMap      : [],
+    stepMap      : [],
+    possibleMoves: [],
+    heroPos      : level.hero.s * 100 + level.hero.e,
+    boxesPos     : level.boxes.map(b => b.s * 100 + b.e).sort(),
+    boxesId      : 0,
+    gameId       : level.id,
+    initialGameId: 0,
+    solvedBoxesId: 0,
+  };
 
+  game.boxesId       = getNumArrId(game.boxesPos);
+  game.gameId        = (31 * game.boxesId + game.heroPos) >>> 0;
   game.initialGameId = game.gameId;
 
   const mapWidth = game.map[0].length;
   const goalsPos: number[] = [];
-  for (let i = 1, len = game.map.length; i < len - 1; i++) {
-  for (let j = 1; j < mapWidth - 1; j++) {
-    if (game.map[i][j] === ".") {
-      goalsPos.push(i*100 + j);
+  for (let s = 0; s < game.map.length; s++) {
+  for (let e = 0; e < mapWidth; e++) {
+    if (game.map[s][e] === ".") {
+      goalsPos.push(s*100 + e);
     }
   }}
   goalsPos.sort();
 
   game.solvedBoxesId = getNumArrId(goalsPos);
+
+  return game;
 }
 
 export function setGameState(game: IGame): void {
   game.boxesId = getNumArrId(game.boxesPos);
-  game.gameId  = (31 * game.heroPos * game.boxesId) >>> 0;
+  game.gameId  = (31 * game.boxesId + game.heroPos) >>> 0;
 }
 
 function getNumArrId(nums: number[]): number {
-  const PRIME = 31;
-  let res = 1;
-
+  let res = 0;
   for (const num of nums) {
-    res = (num * PRIME * res) | 0; // Convert to signed 32 bit int
+    res = (31 * res + num) | 0; // Convert to signed 32 bit int
   }
-
   return res >>> 0; // Convert to unsigned 32 bit int
 }

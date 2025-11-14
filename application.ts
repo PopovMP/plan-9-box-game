@@ -1,8 +1,8 @@
-import { type IGame, type ILevel, type IGameModel, EDir } from "./def.ts";
+import { type IGame, type ILevel, type IGameModel, UP, LEFT, RIGHT, DOWN, PUSH } from "./def.ts";
 import { canMove, doMove, isSolved, loadGame, storeGame, moveBox, makePointNext, setGameState, initGameState } from "./game-engine.ts";
 import { easyLevels } from "./easy-levels.ts";
 import { render, scaleCanvas } from "./renderer.ts";
-import { initGoodMap, setGoodMap, setPossibleMoves, initBoxMap, setBoxMap, initStepMap, setStepMap } from "./solver.ts";
+import { initGoodMap, setGoodMap, setPossibleMoves, initBoxMap, setBoxMap, initStepMap, setStepMap, runSolver } from "./solver.ts";
 
 interface IView {
   board  : HTMLCanvasElement;
@@ -44,10 +44,8 @@ export function main(): void {
   function setLevel(id: number): void {
     replay.length = 0;
     model.levelId = id;
-    game = structuredClone(levels[model.levelId]) as IGame;
-    initGameState(game);
-
-    game.possibleMoves = new Array(game.boxes.length).fill(0);
+    const level: ILevel = structuredClone(levels[model.levelId]);
+    game = initGameState(level);
     initGoodMap(game);
     initBoxMap(game);
     initStepMap(game);
@@ -157,6 +155,9 @@ export function main(): void {
     let isMove = false;
 
     switch (event.key) {
+      case "s":
+        runSolver(game);
+        return;
       case "+":
       case "=":
         event.preventDefault();
@@ -179,7 +180,7 @@ export function main(): void {
           return;
         }
 
-        if ((dir = canMove(game, -1, 0)) && !isSolved(game)) {
+        if ((dir = canMove(game, UP)) && !isSolved(game)) {
           doMove(game, dir);
           replay.push(dir);
           isMove = true;
@@ -187,7 +188,7 @@ export function main(): void {
         break;
       case "ArrowRight":
         event.preventDefault();
-        if ((dir = canMove(game, 0, 1)) && !isSolved(game)) {
+        if ((dir = canMove(game, RIGHT)) && !isSolved(game)) {
           doMove(game, dir);
           replay.push(dir);
           isMove = true;
@@ -195,7 +196,7 @@ export function main(): void {
         break;
       case "ArrowLeft":
         event.preventDefault();
-        if ((dir = canMove(game, 0, -1)) && !isSolved(game)) {
+        if ((dir = canMove(game, LEFT)) && !isSolved(game)) {
           doMove(game, dir);
           replay.push(dir);
           isMove = true;
@@ -208,7 +209,7 @@ export function main(): void {
           return;
         }
 
-        if ((dir = canMove(game, 1, 0)) && !isSolved(game)) {
+        if ((dir = canMove(game, DOWN)) && !isSolved(game)) {
           doMove(game, dir);
           replay.push(dir);
           isMove = true;
@@ -256,24 +257,11 @@ export function main(): void {
         return;
       }
 
-      switch (model.replays[model.levelId][i]) {
-        case EDir.up:
-        case EDir.pushUp:
-          doMove(game, EDir.up);
-          break;
-        case EDir.left:
-        case EDir.pushLeft:
-          doMove(game, EDir.left);
-          break;
-        case EDir.right:
-        case EDir.pushRight:
-          doMove(game, EDir.right);
-          break;
-        case EDir.down:
-        case EDir.pushDown:
-          doMove(game, EDir.down);
-          break;
-      }
+      const move = model.replays[model.levelId][i];
+           if (move & UP   ) doMove(game, UP   );
+      else if (move & LEFT ) doMove(game, LEFT );
+      else if (move & RIGHT) doMove(game, RIGHT);
+      else if (move & DOWN ) doMove(game, DOWN );
 
       setBoxMap(game);
       setStepMap(game);
@@ -289,37 +277,37 @@ export function main(): void {
     const lastMove = replay.pop();
 
     switch (lastMove) {
-      case EDir.up:
-        doMove(game, EDir.down);
+      case UP:
+        doMove(game, DOWN);
         break;
-      case EDir.pushUp: {
-          const pos = makePointNext(game.hero, -1, 0);
-          doMove(game, EDir.pushDown);
-          moveBox(game, pos, 1, 0);
+      case PUSH | UP: {
+          const pos = makePointNext(game.heroPos, UP);
+          doMove(game, DOWN);
+          moveBox(game.boxesPos, pos, DOWN);
         } break;
-      case EDir.left:
-        doMove(game, EDir.right);
+      case LEFT:
+        doMove(game, RIGHT);
         break;
-      case EDir.pushLeft: {
-          const pos = makePointNext(game.hero, 0, -1);
-          doMove(game, EDir.pushRight);
-          moveBox(game, pos, 0, 1);
+      case PUSH | LEFT: {
+          const pos = makePointNext(game.heroPos, LEFT);
+          doMove(game, RIGHT);
+          moveBox(game.boxesPos, pos, RIGHT);
         } break;
-      case EDir.right:
-        doMove(game, EDir.left);
+      case RIGHT:
+        doMove(game, LEFT);
         break;
-      case EDir.pushRight: {
-          const pos = makePointNext(game.hero, 0, 1);
-          doMove(game, EDir.pushLeft);
-          moveBox(game, pos, 0, -1);
+      case PUSH | RIGHT: {
+          const pos = makePointNext(game.heroPos, RIGHT);
+          doMove(game, LEFT);
+          moveBox(game.boxesPos, pos, LEFT);
         } break;
-      case EDir.down:
-        doMove(game,EDir.up);
+      case DOWN:
+        doMove(game, UP);
         break;
-      case EDir.pushDown: {
-          const pos = makePointNext(game.hero, 1, 0);
-          doMove(game, EDir.pushUp);
-          moveBox(game, pos, -1, 0);
+      case PUSH | DOWN: {
+          const pos = makePointNext(game.heroPos, DOWN);
+          doMove(game, UP);
+          moveBox(game.boxesPos, pos, UP);
       } break;
     }
 

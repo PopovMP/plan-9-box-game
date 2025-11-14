@@ -1,4 +1,5 @@
 import { type IGame, UP, LEFT, RIGHT, DOWN } from "./def.ts";
+import { setGameState } from "./game-engine.ts";
 
 export function initBoxMap(game: IGame): void {
   const mapWidth = game.map[0].length;
@@ -16,8 +17,10 @@ export function setBoxMap(game: IGame): void {
   }
 
   // Set the boxes
-  for (const box of game.boxes) {
-    boxMap[box.s][box.e] = true;
+  for (const boxPos of game.boxesPos) {
+    const s = Math.trunc(boxPos / 100);
+    const e = boxPos % 100;
+    boxMap[s][e] = true;
   }
 }
 
@@ -89,7 +92,9 @@ export function setStepMap(game: IGame): boolean[][] {
   }
 
   // It is the hero tile
-  stepMap[game.hero.s][game.hero.e] = true;
+  const hs = Math.trunc(game.heroPos / 100);
+  const he = game.heroPos % 100;
+  stepMap[hs][he] = true;
 
   // Set stepMap
   let isChanged;
@@ -121,30 +126,121 @@ export function setPossibleMoves(game: IGame): void {
   const goodMap = game.goodMap;
   const stepMap = game.stepMap;
   const boxMap  = game.boxMap;
-  game.possibleMoves.fill(0);
+  game.possibleMoves.length = 0;
 
-  let i = 0;
-  for (const box of game.boxes) {
-    let dir = 0;
-    const s = box.s;
-    const e = box.e;
+  for (const boxPos of game.boxesPos) {
+    const s = Math.trunc(boxPos / 100);
+    const e = boxPos % 100;
 
     if (goodMap[s-1][e] && stepMap[s+1][e] && !boxMap[s+1][e] && !boxMap[s-1][e]) {
-      dir |= UP;
+      game.possibleMoves.push(boxPos * 100 + UP);
     }
     if (goodMap[s+1][e] && stepMap[s-1][e] && !boxMap[s+1][e] && !boxMap[s-1][e]) {
-      dir |= DOWN;
+      game.possibleMoves.push(boxPos * 100 + DOWN);
     }
     if (goodMap[s][e+1] && stepMap[s][e-1] && !boxMap[s][e+1] && !boxMap[s][e-1]) {
-      dir |= RIGHT;
+      game.possibleMoves.push(boxPos * 100 + RIGHT);
     }
     if (goodMap[s][e-1] && stepMap[s][e+1] && !boxMap[s][e+1] && !boxMap[s][e-1]) {
-      dir |= LEFT;
-    }
-
-    if (dir !== 0) {
-      game.possibleMoves[i] = s * 10000 + e * 100 + dir;
-      i++;
+      game.possibleMoves.push(boxPos * 100 + LEFT);
     }
   }
 }
+
+export function runSolver(game: IGame): void {
+  void game;
+  const pastGames = new Set();
+  const track: number[] = [];
+
+
+  while (true) {
+    //const trackBackup = track.slice();
+
+    const heroBack  = game.heroPos;
+    const boxesBack = game.boxesPos.slice();
+
+    const steps = doBranchMoves(0);
+    console.log("Steps: ", steps);
+
+    console.log("Tracks :", track.join(", "));
+    console.log("Her pos:", game.heroPos);
+    console.log("Box pos:", game.boxesPos.join(", "));
+    console.log("===========================");
+
+    if (game.boxesId === game.solvedBoxesId) {
+      console.log("Solved");
+      console.log(track.join(", "));
+      break;
+    }
+
+    game.heroPos  = heroBack;
+    game.boxesPos = boxesBack.slice();
+    setBoxMap(game);
+    setStepMap(game);
+    setPossibleMoves(game);
+    break;
+    // track = trackBackup.slice();
+  }
+
+
+  function doBranchMoves(steps: number): number {
+
+    for (const move of game.possibleMoves) {
+      if (move > 0) {
+        const heroBack  = game.heroPos;
+        const boxesBack = game.boxesPos.slice();
+
+        game.heroPos = makeBoxMove(game.boxesPos, move);
+        steps += 1;
+
+        if (pastGames.has(game.gameId)) {
+          game.heroPos  = heroBack;
+          game.boxesPos = boxesBack.slice();
+          continue;
+        }
+
+        pastGames.add(game.gameId);
+
+
+        if (game.boxesId === game.solvedBoxesId) {
+          return steps;
+        }
+
+        setBoxMap(game);
+        setStepMap(game);
+        setPossibleMoves(game);
+
+        if (game.possibleMoves[0] === 0) {
+          return steps;
+        }
+
+        track.push(move);
+        setGameState(game);
+        return doBranchMoves(steps);
+      }
+    }
+
+    return steps;
+  }
+}
+
+function makeBoxMove(boxesPos: number[], move: number): number {
+  const dir = move % 100;
+  const moveFromPos = Math.trunc(move / 100);
+  for (let i = 0; i < boxesPos.length; i++) {
+    const boxPos = boxesPos[i];
+    if (boxPos === moveFromPos) {
+      const s = Math.trunc(boxPos / 100);
+      const e = boxPos % 100;
+           if (dir & UP   ) boxesPos[i] = (s-1) * 100 + e;
+      else if (dir & DOWN ) boxesPos[i] = (s+1) * 100 + e;
+      else if (dir & LEFT ) boxesPos[i] = s * 100 + (e-1);
+      else if (dir & RIGHT) boxesPos[i] = s * 100 + (e+1);
+      boxesPos.sort();
+      return 100*s + e;
+    }
+  }
+
+  throw new Error("Unreachable");
+}
+
