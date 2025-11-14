@@ -1,14 +1,4 @@
-import { type ILevel, type IPoint, type IGame, type IGameModel, EDir } from "./def.ts";
-
-export function areGameEqual(gameA: ILevel, gameB: ILevel): boolean {
-  if (!isPointEq(gameA.hero, gameB.hero)) return false;
-
-  // BUG: Gets different games when boxes switch places
-  for (let i = 0; i < gameA.boxes.length; i++) {
-    if (!isPointEq(gameA.boxes[i], gameB.boxes[i])) return false;
-  }
-  return true;
-}
+import { type IPoint, type IGame, type IGameModel, EDir } from "./def.ts";
 
 function isPointEq(p1: IPoint, p2: IPoint): boolean {
   return p1.s === p2.s && p1.e === p2.e;
@@ -98,29 +88,25 @@ export function doMove(game: IGame, dir: number): void {
   const posNext: IPoint = makePointNext(game.hero, ds, de);
 
   if (isBoxAt(game, posNext)) {
-      const posNexter: IPoint = makePointNext(posNext, ds, de);
-      if (isFreeAt(game, posNexter)) {
-          moveBox(game, posNext, ds, de);
-      } else {
-          throw new Error(`Cannot move a box at: ${posNexter}`);
-      }
+    const posNexter: IPoint = makePointNext(posNext, ds, de);
+    if (isFreeAt(game, posNexter)) {
+      moveBox(game, posNext, ds, de);
+      game.boxesPos = game.boxes.map(b => b.s * 100 + b.e).sort();
+    } else {
+      throw new Error(`Cannot move a box at: ${posNexter}`);
+    }
   }
 
   if (isFreeAt(game, posNext)) {
-      movePoint(game.hero, ds, de);
+    movePoint(game.hero, ds, de);
+    game.heroPos = game.hero.s * 100 + game.hero.e;
   } else {
-      throw new Error(`Cannot move the hero at: ${posNext}`);
+    throw new Error(`Cannot move the hero at: ${posNext}`);
   }
 }
 
 export function isSolved(game: IGame): boolean {
-  for (const box of game.boxes) {
-    if (getMapCharAt(game, box) !== ".") {
-      return false;
-    }
-  }
-
-  return true;
+  return game.boxesId === game.solvedBoxesId;
 }
 
 export function storeGame(model: IGameModel): void {
@@ -166,4 +152,42 @@ export function loadGame(): IGameModel {
   }
 
   return model;
+}
+
+export function initGameState(game: IGame): void {
+  // ssee
+  game.heroPos  = game.hero.s * 100 + game.hero.e;
+  game.boxesPos = game.boxes.map(b => b.s * 100 + b.e).sort();
+  game.boxesId  = getNumArrId(game.boxesPos);
+  game.gameId   = (31 * game.heroPos * game.boxesId) >>> 0;
+
+  game.initialGameId = game.gameId;
+
+  const mapWidth = game.map[0].length;
+  const goalsPos: number[] = [];
+  for (let i = 1, len = game.map.length; i < len - 1; i++) {
+  for (let j = 1; j < mapWidth - 1; j++) {
+    if (game.map[i][j] === ".") {
+      goalsPos.push(i*100 + j);
+    }
+  }}
+  goalsPos.sort();
+
+  game.solvedBoxesId = getNumArrId(goalsPos);
+}
+
+export function setGameState(game: IGame): void {
+  game.boxesId = getNumArrId(game.boxesPos);
+  game.gameId  = (31 * game.heroPos * game.boxesId) >>> 0;
+}
+
+function getNumArrId(nums: number[]): number {
+  const PRIME = 31;
+  let res = 1;
+
+  for (const num of nums) {
+    res = (num * PRIME * res) | 0; // Convert to signed 32 bit int
+  }
+
+  return res >>> 0; // Convert to unsigned 32 bit int
 }

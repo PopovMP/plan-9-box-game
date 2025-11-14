@@ -41,13 +41,6 @@ var App = (() => {
   var DOWN = 8;
 
   // game-engine.ts
-  function areGameEqual(gameA, gameB) {
-    if (!isPointEq(gameA.hero, gameB.hero)) return false;
-    for (let i = 0; i < gameA.boxes.length; i++) {
-      if (!isPointEq(gameA.boxes[i], gameB.boxes[i])) return false;
-    }
-    return true;
-  }
   function isPointEq(p1, p2) {
     return p1.s === p2.s && p1.e === p2.e;
   }
@@ -114,23 +107,20 @@ var App = (() => {
       const posNexter = makePointNext(posNext, ds, de);
       if (isFreeAt(game, posNexter)) {
         moveBox(game, posNext, ds, de);
+        game.boxesPos = game.boxes.map((b) => b.s * 100 + b.e).sort();
       } else {
         throw new Error(`Cannot move a box at: ${posNexter}`);
       }
     }
     if (isFreeAt(game, posNext)) {
       movePoint(game.hero, ds, de);
+      game.heroPos = game.hero.s * 100 + game.hero.e;
     } else {
       throw new Error(`Cannot move the hero at: ${posNext}`);
     }
   }
   function isSolved(game) {
-    for (const box of game.boxes) {
-      if (getMapCharAt(game, box) !== ".") {
-        return false;
-      }
-    }
-    return true;
+    return game.boxesId === game.solvedBoxesId;
   }
   function storeGame(model) {
     const modelTxt = JSON.stringify(model);
@@ -170,6 +160,36 @@ var App = (() => {
       }
     }
     return model;
+  }
+  function initGameState(game) {
+    game.heroPos = game.hero.s * 100 + game.hero.e;
+    game.boxesPos = game.boxes.map((b) => b.s * 100 + b.e).sort();
+    game.boxesId = getNumArrId(game.boxesPos);
+    game.gameId = 31 * game.heroPos * game.boxesId >>> 0;
+    game.initialGameId = game.gameId;
+    const mapWidth = game.map[0].length;
+    const goalsPos = [];
+    for (let i = 1, len = game.map.length; i < len - 1; i++) {
+      for (let j = 1; j < mapWidth - 1; j++) {
+        if (game.map[i][j] === ".") {
+          goalsPos.push(i * 100 + j);
+        }
+      }
+    }
+    goalsPos.sort();
+    game.solvedBoxesId = getNumArrId(goalsPos);
+  }
+  function setGameState(game) {
+    game.boxesId = getNumArrId(game.boxesPos);
+    game.gameId = 31 * game.heroPos * game.boxesId >>> 0;
+  }
+  function getNumArrId(nums) {
+    const PRIME = 31;
+    let res = 1;
+    for (const num of nums) {
+      res = num * PRIME * res | 0;
+    }
+    return res >>> 0;
   }
 
   // easy-levels.ts
@@ -2465,6 +2485,7 @@ var App = (() => {
       replay.length = 0;
       model.levelId = id;
       game = structuredClone(levels[model.levelId]);
+      initGameState(game);
       game.possibleMoves = new Array(game.boxes.length).fill(0);
       initGoodMap(game);
       initBoxMap(game);
@@ -2510,7 +2531,7 @@ var App = (() => {
       }
     }
     function setResetStyle() {
-      if (areGameEqual(game, levels[model.levelId])) {
+      if (game.gameId === game.initialGameId) {
         view.reset.classList.add("d-none");
         view.reset.classList.remove("d-inline-block");
       } else {
@@ -2535,7 +2556,7 @@ var App = (() => {
       }
     }
     function setUndoStyle() {
-      if (areGameEqual(game, levels[model.levelId])) {
+      if (game.gameId === game.initialGameId) {
         replay.length = 0;
       }
       if (replay.length === 0 || isSolved(game)) {
@@ -2627,6 +2648,7 @@ var App = (() => {
         setBoxMap(game);
         setStepMap(game);
         setPossibleMoves(game);
+        setGameState(game);
         render(view.board, game, model.scale);
         if (isSolved(game)) {
           markGameSolved();
@@ -2722,6 +2744,7 @@ var App = (() => {
       setBoxMap(game);
       setStepMap(game);
       setPossibleMoves(game);
+      setGameState(game);
       setUndoStyle();
       setResetStyle();
     }

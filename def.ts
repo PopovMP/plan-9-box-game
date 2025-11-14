@@ -15,6 +15,12 @@ export interface IGame extends ILevel {
   goodMap: boolean[][],
   stepMap: boolean[][],
   possibleMoves: number[],
+  heroPos : number;
+  boxesPos: number[];
+  boxesId : number;
+  gameId  : number;
+  initialGameId: number;
+  solvedBoxesId: number;
 }
 
 export interface IGameModel {

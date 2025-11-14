@@ -1,5 +1,5 @@
 import { type IGame, type ILevel, type IGameModel, EDir } from "./def.ts";
-import { canMove, doMove, isSolved, loadGame, storeGame, moveBox, makePointNext, areGameEqual } from "./game-engine.ts";
+import { canMove, doMove, isSolved, loadGame, storeGame, moveBox, makePointNext, setGameState, initGameState } from "./game-engine.ts";
 import { easyLevels } from "./easy-levels.ts";
 import { render, scaleCanvas } from "./renderer.ts";
 import { initGoodMap, setGoodMap, setPossibleMoves, initBoxMap, setBoxMap, initStepMap, setStepMap } from "./solver.ts";
@@ -45,6 +45,8 @@ export function main(): void {
     replay.length = 0;
     model.levelId = id;
     game = structuredClone(levels[model.levelId]) as IGame;
+    initGameState(game);
+
     game.possibleMoves = new Array(game.boxes.length).fill(0);
     initGoodMap(game);
     initBoxMap(game);
@@ -94,7 +96,7 @@ export function main(): void {
   }
 
   function setResetStyle(): void {
-    if (areGameEqual(game, levels[model.levelId])) {
+    if (game.gameId === game.initialGameId) {
       view.reset.classList.add("d-none");
       view.reset.classList.remove("d-inline-block");
     } else {
@@ -126,7 +128,7 @@ export function main(): void {
   }
 
   function setUndoStyle(): void {
-    if (areGameEqual(game, levels[model.levelId])) {
+    if (game.gameId === game.initialGameId) {
       replay.length = 0;
     }
 
@@ -226,6 +228,7 @@ export function main(): void {
       setBoxMap(game);
       setStepMap(game);
       setPossibleMoves(game);
+      setGameState(game);
       render(view.board, game, model.scale);
       if (isSolved(game)) {
         markGameSolved();
@@ -323,6 +326,7 @@ export function main(): void {
     setBoxMap(game);
     setStepMap(game);
     setPossibleMoves(game);
+    setGameState(game);
     setUndoStyle();
     setResetStyle();
   }
