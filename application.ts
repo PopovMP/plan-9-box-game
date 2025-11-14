@@ -152,6 +152,7 @@ export function main(): void {
   function onKeyDown(event: KeyboardEvent): void {
     if (isReplaying) return;
     let dir = 0;
+    let isMove = false;
 
     switch (event.key) {
       case "+":
@@ -159,13 +160,16 @@ export function main(): void {
         event.preventDefault();
         if (model.scale < 3) model.scale += 0.2;
         scaleCanvas(view.board, game, model.scale);
-        break;
+        render(view.board, game, model.scale);
+        storeGame(model);
+        return;
       case "-":
         event.preventDefault();
         if (model.scale > 0.4) model.scale -= 0.2;
         scaleCanvas(view.board, game, model.scale);
+        render(view.board, game, model.scale);
         storeGame(model);
-        break;
+        return;
       case "ArrowUp":
         event.preventDefault();
         if (event.ctrlKey) {
@@ -176,6 +180,7 @@ export function main(): void {
         if ((dir = canMove(game, -1, 0)) && !isSolved(game)) {
           doMove(game, dir);
           replay.push(dir);
+          isMove = true;
         }
         break;
       case "ArrowRight":
@@ -183,6 +188,7 @@ export function main(): void {
         if ((dir = canMove(game, 0, 1)) && !isSolved(game)) {
           doMove(game, dir);
           replay.push(dir);
+          isMove = true;
         }
         break;
       case "ArrowLeft":
@@ -190,6 +196,7 @@ export function main(): void {
         if ((dir = canMove(game, 0, -1)) && !isSolved(game)) {
           doMove(game, dir);
           replay.push(dir);
+          isMove = true;
         }
         break;
       case "ArrowDown":
@@ -202,21 +209,27 @@ export function main(): void {
         if ((dir = canMove(game, 1, 0)) && !isSolved(game)) {
           doMove(game, dir);
           replay.push(dir);
+          isMove = true;
         }
         break;
       case "u":
       case "U":
-        event.preventDefault();
-        undoMove();
+        if (!isSolved(game)) {
+          event.preventDefault();
+          undoMove();
+          isMove = true;
+        }
         break;
     }
 
-    setBoxMap(game);
-    setStepMap(game);
-    setPossibleMoves(game);
-    render(view.board, game, model.scale);
-    if (isSolved(game)) {
-      markGameSolved();
+    if (isMove) {
+      setBoxMap(game);
+      setStepMap(game);
+      setPossibleMoves(game);
+      render(view.board, game, model.scale);
+      if (isSolved(game)) {
+        markGameSolved();
+      }
     }
     setUndoStyle();
     setResetStyle();

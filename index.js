@@ -157,7 +157,14 @@ var App = (() => {
           model.solvedIds = modelDto.solvedIds.slice();
         }
         if (Array.isArray(modelDto.replays)) {
-          model.replays = structuredClone(modelDto.replays);
+          model.replays = new Array(modelDto.replays.length);
+          for (let i = 0; i < modelDto.replays.length; i++) {
+            if (Array.isArray(modelDto.replays[i])) {
+              model.replays[i] = modelDto.replays[i].slice();
+            } else {
+              model.replays[i] = [];
+            }
+          }
         }
       } catch {
       }
@@ -2550,19 +2557,23 @@ var App = (() => {
     function onKeyDown(event) {
       if (isReplaying) return;
       let dir = 0;
+      let isMove = false;
       switch (event.key) {
         case "+":
         case "=":
           event.preventDefault();
           if (model.scale < 3) model.scale += 0.2;
           scaleCanvas(view.board, game, model.scale);
-          break;
+          render(view.board, game, model.scale);
+          storeGame(model);
+          return;
         case "-":
           event.preventDefault();
           if (model.scale > 0.4) model.scale -= 0.2;
           scaleCanvas(view.board, game, model.scale);
+          render(view.board, game, model.scale);
           storeGame(model);
-          break;
+          return;
         case "ArrowUp":
           event.preventDefault();
           if (event.ctrlKey) {
@@ -2572,6 +2583,7 @@ var App = (() => {
           if ((dir = canMove(game, -1, 0)) && !isSolved(game)) {
             doMove(game, dir);
             replay.push(dir);
+            isMove = true;
           }
           break;
         case "ArrowRight":
@@ -2579,6 +2591,7 @@ var App = (() => {
           if ((dir = canMove(game, 0, 1)) && !isSolved(game)) {
             doMove(game, dir);
             replay.push(dir);
+            isMove = true;
           }
           break;
         case "ArrowLeft":
@@ -2586,6 +2599,7 @@ var App = (() => {
           if ((dir = canMove(game, 0, -1)) && !isSolved(game)) {
             doMove(game, dir);
             replay.push(dir);
+            isMove = true;
           }
           break;
         case "ArrowDown":
@@ -2597,20 +2611,26 @@ var App = (() => {
           if ((dir = canMove(game, 1, 0)) && !isSolved(game)) {
             doMove(game, dir);
             replay.push(dir);
+            isMove = true;
           }
           break;
         case "u":
         case "U":
-          event.preventDefault();
-          undoMove();
+          if (!isSolved(game)) {
+            event.preventDefault();
+            undoMove();
+            isMove = true;
+          }
           break;
       }
-      setBoxMap(game);
-      setStepMap(game);
-      setPossibleMoves(game);
-      render(view.board, game, model.scale);
-      if (isSolved(game)) {
-        markGameSolved();
+      if (isMove) {
+        setBoxMap(game);
+        setStepMap(game);
+        setPossibleMoves(game);
+        render(view.board, game, model.scale);
+        if (isSolved(game)) {
+          markGameSolved();
+        }
       }
       setUndoStyle();
       setResetStyle();

@@ -151,7 +151,14 @@ export function loadGame(): IGameModel {
         model.solvedIds = modelDto.solvedIds.slice();
       }
       if (Array.isArray(modelDto.replays)) {
-        model.replays = structuredClone(modelDto.replays);
+        model.replays = new Array(modelDto.replays.length);
+        for (let i = 0; i < modelDto.replays.length; i++) {
+          if (Array.isArray(modelDto.replays[i])) {
+              model.replays[i] = modelDto.replays[i].slice();
+          } else {
+            model.replays[i] = [];
+          }
+        }
       }
     } catch {
       // skip
