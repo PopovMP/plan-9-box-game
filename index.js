@@ -193,13 +193,9 @@ var App = (() => {
     throw new Error("Unreachable");
   }
   function findHeroTrack(game, targetPos) {
-    const distanceMap = new Array(game.map.length);
-    for (let i = 0; i < distanceMap.length; i++) {
-      distanceMap[i] = new Array(game.map[0].length).fill(Number.MAX_SAFE_INTEGER);
-    }
-    const targetPosSouth = Math.trunc(targetPos / 100);
-    const targetPosEast = targetPos % 100;
-    distanceMap[targetPosSouth][targetPosEast] = 0;
+    const MAX = Number.MAX_SAFE_INTEGER;
+    const distanceMap = /* @__PURE__ */ new Map();
+    distanceMap.set(targetPos, 0);
     setDistanceMapLoop([targetPos]);
     return findShortestPath();
     function setDistanceMapLoop(nodes) {
@@ -208,23 +204,28 @@ var App = (() => {
       for (const node of nodes) {
         const s = Math.trunc(node / 100);
         const e = node % 100;
-        const distance = distanceMap[s][e] + 1;
-        if (game.stepMap[s - 1][e] && distanceMap[s - 1][e] > distance) {
-          distanceMap[s - 1][e] = distance;
-          neighbours.push((s - 1) * 100 + e);
+        const distance = distanceMap.get(node) + 1;
+        const upPos = (s - 1) * 100 + e;
+        const downPos = (s + 1) * 100 + e;
+        const leftPos = s * 100 + (e - 1);
+        const rightPos = s * 100 + (e + 1);
+        if (game.stepMap[s - 1][e] && (distanceMap.get(upPos) ?? MAX) > distance) {
+          distanceMap.set(upPos, distance);
+          neighbours.push(upPos);
         }
-        if (game.stepMap[s + 1][e] && distanceMap[s + 1][e] > distance) {
-          distanceMap[s + 1][e] = distance;
-          neighbours.push((s + 1) * 100 + e);
+        if (game.stepMap[s + 1][e] && (distanceMap.get(downPos) ?? MAX) > distance) {
+          distanceMap.set(downPos, distance);
+          neighbours.push(downPos);
         }
-        if (game.stepMap[s][e - 1] && distanceMap[s][e - 1] > distance) {
-          distanceMap[s][e - 1] = distance;
-          neighbours.push(s * 100 + (e - 1));
+        if (game.stepMap[s][e - 1] && (distanceMap.get(leftPos) ?? MAX) > distance) {
+          distanceMap.set(leftPos, distance);
+          neighbours.push(leftPos);
         }
-        if (game.stepMap[s][e + 1] && distanceMap[s][e + 1] > distance) {
-          distanceMap[s][e + 1] = distance;
-          neighbours.push(s * 100 + (e + 1));
+        if (game.stepMap[s][e + 1] && (distanceMap.get(rightPos) ?? MAX) > distance) {
+          distanceMap.set(rightPos, distance);
+          neighbours.push(rightPos);
         }
+        if (upPos === game.heroPos || downPos === game.heroPos || leftPos === game.heroPos || rightPos === game.heroPos) return;
       }
       setDistanceMapLoop(neighbours);
     }
@@ -232,29 +233,33 @@ var App = (() => {
       const heroTrack = [];
       let s = Math.trunc(game.heroPos / 100);
       let e = game.heroPos % 100;
-      let minDist = distanceMap[s][e];
+      let minDist = distanceMap.get(game.heroPos);
       do {
         let minPos = 0;
-        if (distanceMap[s - 1][e] < minDist) {
-          minPos = (s - 1) * 100 + e;
-          minDist = distanceMap[s - 1][e];
+        const upPos = (s - 1) * 100 + e;
+        const downPos = (s + 1) * 100 + e;
+        const leftPos = s * 100 + (e - 1);
+        const rightPos = s * 100 + (e + 1);
+        if ((distanceMap.get(upPos) ?? MAX) < minDist) {
+          minPos = upPos;
+          minDist = distanceMap.get(upPos);
         }
-        if (distanceMap[s + 1][e] < minDist) {
-          minPos = (s + 1) * 100 + e;
-          minDist = distanceMap[s + 1][e];
+        if ((distanceMap.get(downPos) ?? MAX) < minDist) {
+          minPos = downPos;
+          minDist = distanceMap.get(downPos);
         }
-        if (distanceMap[s][e - 1] < minDist) {
-          minPos = s * 100 + (e - 1);
-          minDist = distanceMap[s][e - 1];
+        if ((distanceMap.get(leftPos) ?? MAX) < minDist) {
+          minPos = leftPos;
+          minDist = distanceMap.get(leftPos);
         }
-        if (distanceMap[s][e + 1] < minDist) {
-          minPos = s * 100 + (e + 1);
-          minDist = distanceMap[s][e + 1];
+        if ((distanceMap.get(rightPos) ?? MAX) < minDist) {
+          minPos = rightPos;
+          minDist = distanceMap.get(rightPos);
         }
         s = Math.trunc(minPos / 100);
         e = minPos % 100;
         heroTrack.push(minPos);
-      } while (minDist > 0);
+      } while (minDist >= 1);
       return heroTrack;
     }
   }
