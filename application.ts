@@ -245,9 +245,9 @@ export function main(): void {
       if (isSolved(game)) {
         markGameSolved();
       }
+      setUndoStyle();
+      setResetStyle();
     }
-    setUndoStyle();
-    setResetStyle();
   }
 
   function playSolution(track: number[]): void {
@@ -259,12 +259,14 @@ export function main(): void {
     function loop(i: number): void {
       if (i >= track.length || isStopReplay) {
         isReplaying = false;
+        setUndoStyle();
+        setResetStyle();
         return;
       }
 
       const move = track[i];
-      const pos = Math.trunc(move / 100);
-      const dir = move % 100;
+      const pos  = Math.trunc(move / 100);
+      const dir  = move % 100;
       moveBox(game.boxesPos, pos, dir);
       game.heroPos = pos;
 
@@ -293,6 +295,8 @@ export function main(): void {
     function loop(i: number): void {
       if (i >= model.replays[model.levelId].length || isStopReplay) {
         isReplaying = false;
+        setUndoStyle();
+        setResetStyle();
         return;
       }
 

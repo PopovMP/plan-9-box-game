@@ -188,14 +188,14 @@ var App = (() => {
   function initBoxMap(game) {
     const mapWidth = game.map[0].length;
     game.boxMap = new Array(game.map.length);
-    for (let i = 0, len = game.map.length; i < len; i++) {
-      game.boxMap[i] = new Array(mapWidth).fill(false);
+    for (let s = 0, len = game.map.length; s < len; s++) {
+      game.boxMap[s] = new Array(mapWidth).fill(false);
     }
   }
   function setBoxMap(game) {
     const boxMap = game.boxMap;
-    for (let i = 0, len = game.map.length; i < len; i++) {
-      boxMap[i].fill(false);
+    for (let s = 0, len = game.map.length; s < len; s++) {
+      boxMap[s].fill(false);
     }
     for (const boxPos of game.boxesPos) {
       const s = Math.trunc(boxPos / 100);
@@ -206,32 +206,32 @@ var App = (() => {
   function initGoodMap(game) {
     const mapWidth = game.map[0].length;
     game.goodMap = new Array(game.map.length);
-    for (let i = 0, len = game.map.length; i < len; i++) {
-      game.goodMap[i] = new Array(mapWidth).fill(false);
+    for (let s = 0, len = game.map.length; s < len; s++) {
+      game.goodMap[s] = new Array(mapWidth).fill(false);
     }
   }
   function setGoodMap(game) {
     const mapWidth = game.map[0].length;
     const gameMap = game.map;
     const goodMap = game.goodMap;
-    for (let i = 1, len = gameMap.length; i < len - 1; i++) {
-      goodMap[i] = new Array(mapWidth).fill(false);
+    for (let s = 1, len = gameMap.length; s < len - 1; s++) {
+      goodMap[s] = new Array(mapWidth).fill(false);
     }
     let isChanged;
     do {
       isChanged = false;
-      for (let i = 1, len = gameMap.length; i < len - 1; i++) {
-        for (let j = 1; j < mapWidth - 1; j++) {
+      for (let s = 1, len = gameMap.length; s < len - 1; s++) {
+        for (let e = 1; e < mapWidth - 1; e++) {
           let ch;
-          if (goodMap[i][j]) continue;
-          if ((ch = gameMap[i][j]) === "#" || ch === "_") continue;
-          if (gameMap[i][j] === ".") {
-            goodMap[i][j] = true;
+          if (goodMap[s][e]) continue;
+          if ((ch = gameMap[s][e]) === "#" || ch === "_") continue;
+          if (gameMap[s][e] === ".") {
+            goodMap[s][e] = true;
             isChanged = true;
             continue;
           }
-          if (goodMap[i - 1][j] && ((ch = gameMap[i + 1][j]) === " " || ch === ".") || goodMap[i][j + 1] && ((ch = gameMap[i][j - 1]) === " " || ch === ".") || goodMap[i + 1][j] && ((ch = gameMap[i - 1][j]) === " " || ch === ".") || goodMap[i][j - 1] && ((ch = gameMap[i][j + 1]) === " " || ch === ".")) {
-            goodMap[i][j] = true;
+          if (goodMap[s - 1][e] && ((ch = gameMap[s + 1][e]) === " " || ch === ".") || goodMap[s][e + 1] && ((ch = gameMap[s][e - 1]) === " " || ch === ".") || goodMap[s + 1][e] && ((ch = gameMap[s - 1][e]) === " " || ch === ".") || goodMap[s][e - 1] && ((ch = gameMap[s][e + 1]) === " " || ch === ".")) {
+            goodMap[s][e] = true;
             isChanged = true;
             continue;
           }
@@ -242,8 +242,8 @@ var App = (() => {
   function initStepMap(game) {
     const mapWidth = game.map[0].length;
     game.stepMap = new Array(game.map.length);
-    for (let i = 0, len = game.map.length; i < len; i++) {
-      game.stepMap[i] = new Array(mapWidth).fill(false);
+    for (let s = 0, len = game.map.length; s < len; s++) {
+      game.stepMap[s] = new Array(mapWidth).fill(false);
     }
   }
   function setStepMap(game) {
@@ -260,13 +260,13 @@ var App = (() => {
     let isChanged;
     do {
       isChanged = false;
-      for (let i = 1, len = gameMap.length; i < len - 1; i++) {
-        for (let j = 1; j < mapWidth - 1; j++) {
+      for (let s = 1, len = gameMap.length; s < len - 1; s++) {
+        for (let e = 1; e < mapWidth - 1; e++) {
           let ch;
-          if (stepMap[i][j]) continue;
-          if ((ch = gameMap[i][j]) === "#" || ch === "_" || boxMap[i][j]) continue;
-          if (stepMap[i - 1][j] || stepMap[i][j + 1] || stepMap[i + 1][j] || stepMap[i][j - 1]) {
-            stepMap[i][j] = true;
+          if (stepMap[s][e]) continue;
+          if ((ch = gameMap[s][e]) === "#" || ch === "_" || boxMap[s][e]) continue;
+          if (stepMap[s - 1][e] || stepMap[s][e + 1] || stepMap[s + 1][e] || stepMap[s][e - 1]) {
+            stepMap[s][e] = true;
             isChanged = true;
             continue;
           }
@@ -2713,9 +2713,9 @@ var App = (() => {
         if (isSolved(game)) {
           markGameSolved();
         }
+        setUndoStyle();
+        setResetStyle();
       }
-      setUndoStyle();
-      setResetStyle();
     }
     function playSolution(track) {
       isReplaying = true;
@@ -2725,6 +2725,8 @@ var App = (() => {
       function loop(i) {
         if (i >= track.length || isStopReplay) {
           isReplaying = false;
+          setUndoStyle();
+          setResetStyle();
           return;
         }
         const move = track[i];
@@ -2752,6 +2754,8 @@ var App = (() => {
       function loop(i) {
         if (i >= model.replays[model.levelId].length || isStopReplay) {
           isReplaying = false;
+          setUndoStyle();
+          setResetStyle();
           return;
         }
         const move = model.replays[model.levelId][i];
