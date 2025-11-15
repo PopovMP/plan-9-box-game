@@ -1,5 +1,5 @@
 import { type IGame, type ILevel, type IGameModel, UP, LEFT, RIGHT, DOWN, PUSH } from "./def.ts";
-import { canMove, doMove, isSolved, loadGame, storeGame, moveBox, makePointNext, setGameState, initGameState } from "./game-engine.ts";
+import { canMove, doMove, isSolved, loadGame, storeGame, moveBox, makePointNext, setGameState, initGameState, findOppositePosition, findHeroTrack } from "./game-engine.ts";
 import { initGoodMap, setGoodMap, setPossibleMoves, initBoxMap, setBoxMap, initStepMap, setStepMap, runSolver } from "./solver.ts";
 import { easyLevels } from "./easy-levels.ts";
 import { render, scaleCanvas } from "./renderer.ts";
@@ -264,17 +264,44 @@ export function main(): void {
       }
 
       const move = track[i];
-      const pos  = Math.trunc(move / 100);
-      const dir  = move % 100;
+      makeSolutionMove(move, () => {
+        setBoxMap(game);
+        setStepMap(game);
+        setPossibleMoves(game);
+        setGameState(game);
+        render(view.board, game, model.scale);
+        setTimeout(loop, time_step, i + 1);
+      });
+    }
+  }
+
+  function makeSolutionMove(move: number, callback: () => void): void {
+    const pos  = Math.trunc(move / 100);
+    const dir  = move % 100;
+    const oppositePos: number = findOppositePosition(pos, dir);
+
+    if (oppositePos === game.heroPos) {
       moveBox(game.boxesPos, pos, dir);
       game.heroPos = pos;
+      callback();
+      return;
+    }
 
-      setBoxMap(game);
-      setStepMap(game);
-      setPossibleMoves(game);
-      setGameState(game);
+    const heroTrack: number[] = findHeroTrack(game, oppositePos);
+    loop(0);
+
+    function loop(i: number): void {
+      if (i >= heroTrack.length) {
+        moveBox(game.boxesPos, pos, dir);
+        game.heroPos = pos;
+        callback();
+        return;
+      }
+
+      game.heroPos = heroTrack[i];
       render(view.board, game, model.scale);
-      setTimeout(loop, time_step, i + 1);
+
+      setTimeout(loop, 200, i + 1);
     }
   }
 

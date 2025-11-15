@@ -183,6 +183,78 @@ var App = (() => {
     }
     return res >>> 0;
   }
+  function findOppositePosition(pos, dir) {
+    const s = Math.trunc(pos / 100);
+    const e = pos % 100;
+    if (dir & UP) return (s + 1) * 100 + e;
+    if (dir & DOWN) return (s - 1) * 100 + e;
+    if (dir & LEFT) return s * 100 + (e + 1);
+    if (dir & RIGHT) return s * 100 + (e - 1);
+    throw new Error("Unreachable");
+  }
+  function findHeroTrack(game, pos) {
+    const distanceMap = new Array(game.map.length);
+    for (let i = 0; i < game.map.length; i++) {
+      distanceMap[i] = new Array(game.map[0].length).fill(Number.MAX_SAFE_INTEGER);
+    }
+    const posS = Math.trunc(pos / 100);
+    const posE = pos % 100;
+    distanceMap[posS][posE] = 0;
+    loop([pos]);
+    const heroTrack = [];
+    let hs = Math.trunc(game.heroPos / 100);
+    let he = game.heroPos % 100;
+    let min = Number.MAX_SAFE_INTEGER;
+    do {
+      let minPos = 0;
+      if (distanceMap[hs - 1][he] < min) {
+        minPos = (hs - 1) * 100 + he;
+        min = distanceMap[hs - 1][he];
+      }
+      if (distanceMap[hs + 1][he] < min) {
+        minPos = (hs + 1) * 100 + he;
+        min = distanceMap[hs + 1][he];
+      }
+      if (distanceMap[hs][he - 1] < min) {
+        minPos = hs * 100 + (he - 1);
+        min = distanceMap[hs][he - 1];
+      }
+      if (distanceMap[hs][he + 1] < min) {
+        minPos = hs * 100 + (he + 1);
+        min = distanceMap[hs][he + 1];
+      }
+      hs = Math.trunc(minPos / 100);
+      he = minPos % 100;
+      heroTrack.push(minPos);
+    } while (min > 0);
+    return heroTrack;
+    function loop(nodes) {
+      if (nodes.length === 0) return;
+      const neighbours = [];
+      for (const node of nodes) {
+        const s = Math.trunc(node / 100);
+        const e = node % 100;
+        const distance = distanceMap[s][e] + 1;
+        if (game.stepMap[s - 1][e] && distanceMap[s - 1][e] > distance) {
+          distanceMap[s - 1][e] = distance;
+          neighbours.push((s - 1) * 100 + e);
+        }
+        if (game.stepMap[s + 1][e] && distanceMap[s + 1][e] > distance) {
+          distanceMap[s + 1][e] = distance;
+          neighbours.push((s + 1) * 100 + e);
+        }
+        if (game.stepMap[s][e - 1] && distanceMap[s][e - 1] > distance) {
+          distanceMap[s][e - 1] = distance;
+          neighbours.push(s * 100 + (e - 1));
+        }
+        if (game.stepMap[s][e + 1] && distanceMap[s][e + 1] > distance) {
+          distanceMap[s][e + 1] = distance;
+          neighbours.push(s * 100 + (e + 1));
+        }
+      }
+      loop(neighbours);
+    }
+  }
 
   // solver.ts
   function initBoxMap(game) {
@@ -2768,16 +2840,38 @@ var App = (() => {
           return;
         }
         const move = track[i];
-        const pos = Math.trunc(move / 100);
-        const dir = move % 100;
+        makeSolutionMove(move, () => {
+          setBoxMap(game);
+          setStepMap(game);
+          setPossibleMoves(game);
+          setGameState(game);
+          render(view.board, game, model.scale);
+          setTimeout(loop, time_step, i + 1);
+        });
+      }
+    }
+    function makeSolutionMove(move, callback) {
+      const pos = Math.trunc(move / 100);
+      const dir = move % 100;
+      const oppositePos = findOppositePosition(pos, dir);
+      if (oppositePos === game.heroPos) {
         moveBox(game.boxesPos, pos, dir);
         game.heroPos = pos;
-        setBoxMap(game);
-        setStepMap(game);
-        setPossibleMoves(game);
-        setGameState(game);
+        callback();
+        return;
+      }
+      const heroTrack = findHeroTrack(game, oppositePos);
+      loop(0);
+      function loop(i) {
+        if (i >= heroTrack.length) {
+          moveBox(game.boxesPos, pos, dir);
+          game.heroPos = pos;
+          callback();
+          return;
+        }
+        game.heroPos = heroTrack[i];
         render(view.board, game, model.scale);
-        setTimeout(loop, time_step, i + 1);
+        setTimeout(loop, 200, i + 1);
       }
     }
     function onReplay(event) {

@@ -179,3 +179,80 @@ function getNumArrId(nums: number[]): number {
   }
   return res >>> 0; // Convert to unsigned 32 bit int
 }
+
+export function findOppositePosition(pos: number, dir: number): number {
+  const s: number = Math.trunc(pos / 100);
+  const e: number = pos % 100;
+  if (dir & UP   ) return (s+1) * 100 + e;
+  if (dir & DOWN ) return (s-1) * 100 + e;
+  if (dir & LEFT ) return s * 100 + (e+1);
+  if (dir & RIGHT) return s * 100 + (e-1);
+  throw new Error("Unreachable");
+}
+
+export function findHeroTrack(game: IGame, pos: number): number[] {
+  const distanceMap = new Array(game.map.length);
+  for (let i = 0; i < game.map.length; i++) {
+    distanceMap[i] = new Array(game.map[0].length).fill(Number.MAX_SAFE_INTEGER);
+  }
+  const posS = Math.trunc(pos / 100);
+  const posE = pos % 100;
+  distanceMap[posS][posE] = 0;
+
+  loop([pos]);
+
+  const heroTrack: number[] = [];
+  let hs  = Math.trunc(game.heroPos / 100);
+  let he  = game.heroPos % 100;
+  let min = Number.MAX_SAFE_INTEGER;
+  do {
+    let minPos = 0;
+    if (distanceMap[hs-1][he] < min) { minPos = (hs-1)*100 + he; min = distanceMap[hs-1][he]; }
+    if (distanceMap[hs+1][he] < min) { minPos = (hs+1)*100 + he; min = distanceMap[hs+1][he]; }
+    if (distanceMap[hs][he-1] < min) { minPos = hs*100 + (he-1); min = distanceMap[hs][he-1]; }
+    if (distanceMap[hs][he+1] < min) { minPos = hs*100 + (he+1); min = distanceMap[hs][he+1]; }
+    hs = Math.trunc(minPos / 100);
+    he = minPos % 100;
+    heroTrack.push(minPos);
+  } while (min > 0);
+
+  return heroTrack;
+
+  function loop(nodes: number[]): void {
+    if (nodes.length === 0) return;
+
+    const neighbours: number[] = [];
+    for (const node of nodes) {
+      const s: number = Math.trunc(node / 100);
+      const e: number = node % 100;
+      const distance = distanceMap[s][e] + 1;
+
+      // Up
+      if (game.stepMap[s-1][e] && distanceMap[s-1][e] > distance) {
+        distanceMap[s-1][e] = distance;
+        neighbours.push((s-1)*100 + e);
+      }
+
+      // Down
+      if (game.stepMap[s+1][e] && distanceMap[s+1][e] > distance) {
+        distanceMap[s+1][e] = distance;
+        neighbours.push((s+1)*100 + e);
+      }
+
+      // Left
+      if (game.stepMap[s][e-1] && distanceMap[s][e-1] > distance) {
+        distanceMap[s][e-1] = distance;
+        neighbours.push(s*100 + (e-1));
+      }
+
+      // Right
+      if (game.stepMap[s][e+1] && distanceMap[s][e+1] > distance) {
+        distanceMap[s][e+1] = distance;
+        neighbours.push(s*100 + (e+1));
+      }
+    }
+
+    loop(neighbours);
+  }
+
+}
