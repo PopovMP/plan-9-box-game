@@ -153,18 +153,25 @@ export function runSolver(game: IGame): number[] {
   setState(game);
   pastGames.add(game.gameId);
 
+  const initialHeroPos  = game.heroPos;
+  const initialBoxesPos = game.boxesPos.slice();
+
   let calcs    = 0;
   let isSolved = false;
   try {
     isSolved = doBranchMoves();
-    setState(game);
   } catch (e){
     console.error((e as Error).message);
-    setState(game);
   }
+
+  game.heroPos  = initialHeroPos;
+  game.boxesPos = initialBoxesPos;
+  setState(game);
 
   if (isSolved) {
     console.log(`Solved! Calcs: ${calcs}, Steps: ${track.length}`);
+    optimizeTrack(game, track);
+    console.log(`Optimized steps: ${track.length}`);
     return track;
   } else {
     console.log(`Not Solved! Calcs: ${calcs}`);
@@ -176,11 +183,7 @@ export function runSolver(game: IGame): number[] {
       const heroBack  = game.heroPos;
       const boxesBack = game.boxesPos.slice();
 
-      const pos = Math.trunc(move / 100);
-      const dir = move % 100;
-      moveBox(game.boxesPos, pos, dir);
-      game.heroPos = pos;
-      setState(game);
+      jumpMove(game, move);
       calcs++;
 
       if (pastGames.has(game.gameId)) {
@@ -207,6 +210,52 @@ export function runSolver(game: IGame): number[] {
 
     return false;
   }
+}
+
+function optimizeTrack(game: IGame, track: number[]): void {
+  const initialHeroBack  = game.heroPos;
+  const initialBoxesBack = game.boxesPos.slice();
+
+  let i = 0;
+  while (i < track.length) {
+    let isOptimised = false;
+
+    const heroBack  = game.heroPos;
+    const boxesBack = game.boxesPos.slice();
+    const boxesId   = game.boxesId;
+
+    const hs = Math.trunc(game.heroPos / 100);
+    const he = game.heroPos % 100;
+    for (let j = i; j < track.length; j++) {
+      jumpMove(game, track[j]);
+      if (game.boxesId === boxesId && game.stepMap[hs][he]) {
+        track.splice(i, (j - i) + 1);
+        isOptimised = true;
+        break;
+      }
+    }
+
+    game.heroPos  = heroBack;
+    game.boxesPos = boxesBack.slice();
+    setState(game);
+
+    if (!isOptimised) {
+      jumpMove(game, track[i]);
+      i++;
+    }
+  }
+
+  game.heroPos  = initialHeroBack;
+  game.boxesPos = initialBoxesBack;
+  setState(game);
+}
+
+function jumpMove(game: IGame, move: number): void {
+  const pos = Math.trunc(move / 100);
+  const dir = move % 100;
+  moveBox(game.boxesPos, pos, dir);
+  game.heroPos = pos;
+  setState(game);
 }
 
 function setState(game: IGame): void {

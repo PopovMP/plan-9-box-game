@@ -165,7 +165,6 @@ export function main(): void {
       case "s": {
         event.preventDefault();
         const track: number[] = runSolver(game);
-        setLevel(model.levelId);
         playSolution(track);
         return;
       }

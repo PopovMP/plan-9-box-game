@@ -302,17 +302,22 @@ var App = (() => {
     const track = [];
     setState(game);
     pastGames.add(game.gameId);
+    const initialHeroPos = game.heroPos;
+    const initialBoxesPos = game.boxesPos.slice();
     let calcs = 0;
     let isSolved2 = false;
     try {
       isSolved2 = doBranchMoves();
-      setState(game);
     } catch (e) {
       console.error(e.message);
-      setState(game);
     }
+    game.heroPos = initialHeroPos;
+    game.boxesPos = initialBoxesPos;
+    setState(game);
     if (isSolved2) {
       console.log(`Solved! Calcs: ${calcs}, Steps: ${track.length}`);
+      optimizeTrack(game, track);
+      console.log(`Optimized steps: ${track.length}`);
       return track;
     } else {
       console.log(`Not Solved! Calcs: ${calcs}`);
@@ -322,11 +327,7 @@ var App = (() => {
       for (const move of game.possibleMoves) {
         const heroBack = game.heroPos;
         const boxesBack = game.boxesPos.slice();
-        const pos = Math.trunc(move / 100);
-        const dir = move % 100;
-        moveBox(game.boxesPos, pos, dir);
-        game.heroPos = pos;
-        setState(game);
+        jumpMove(game, move);
         calcs++;
         if (pastGames.has(game.gameId)) {
           game.heroPos = heroBack;
@@ -347,6 +348,44 @@ var App = (() => {
       }
       return false;
     }
+  }
+  function optimizeTrack(game, track) {
+    const initialHeroBack = game.heroPos;
+    const initialBoxesBack = game.boxesPos.slice();
+    let i = 0;
+    while (i < track.length) {
+      let isOptimised = false;
+      const heroBack = game.heroPos;
+      const boxesBack = game.boxesPos.slice();
+      const boxesId = game.boxesId;
+      const hs = Math.trunc(game.heroPos / 100);
+      const he = game.heroPos % 100;
+      for (let j = i; j < track.length; j++) {
+        jumpMove(game, track[j]);
+        if (game.boxesId === boxesId && game.stepMap[hs][he]) {
+          track.splice(i, j - i + 1);
+          isOptimised = true;
+          break;
+        }
+      }
+      game.heroPos = heroBack;
+      game.boxesPos = boxesBack.slice();
+      setState(game);
+      if (!isOptimised) {
+        jumpMove(game, track[i]);
+        i++;
+      }
+    }
+    game.heroPos = initialHeroBack;
+    game.boxesPos = initialBoxesBack;
+    setState(game);
+  }
+  function jumpMove(game, move) {
+    const pos = Math.trunc(move / 100);
+    const dir = move % 100;
+    moveBox(game.boxesPos, pos, dir);
+    game.heroPos = pos;
+    setState(game);
   }
   function setState(game) {
     setBoxMap(game);
@@ -2636,7 +2675,6 @@ var App = (() => {
         case "s": {
           event.preventDefault();
           const track = runSolver(game);
-          setLevel(model.levelId);
           playSolution(track);
           return;
         }
