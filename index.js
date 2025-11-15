@@ -45,7 +45,7 @@ var App = (() => {
         break;
       }
     }
-    boxesPos.sort();
+    boxesPos.sort((a, b) => a - b);
   }
   function getMapCharAt(game, pos) {
     const s = Math.trunc(pos / 100);
@@ -150,7 +150,7 @@ var App = (() => {
       stepMap: [],
       possibleMoves: [],
       heroPos: level.hero.s * 100 + level.hero.e,
-      boxesPos: level.boxes.map((b) => b.s * 100 + b.e).sort(),
+      boxesPos: level.boxes.map((b) => b.s * 100 + b.e).sort((a, b) => a - b),
       boxesId: 0,
       gameId: level.id,
       initialGameId: 0,
@@ -168,7 +168,7 @@ var App = (() => {
         }
       }
     }
-    goalsPos.sort();
+    goalsPos.sort((a, b) => a - b);
     game.solvedBoxesId = getNumArrId(goalsPos);
     return game;
   }

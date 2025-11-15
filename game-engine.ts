@@ -13,7 +13,7 @@ export function moveBox(boxesPos: number[], pos: number, dir: number): void {
       break;
     }
   }
-  boxesPos.sort();
+  boxesPos.sort((a, b) => a - b);
 }
 
 function getMapCharAt(game: IGame, pos: number): string {
@@ -141,7 +141,7 @@ export function initGameState(level: ILevel): IGame {
     stepMap      : [],
     possibleMoves: [],
     heroPos      : level.hero.s * 100 + level.hero.e,
-    boxesPos     : level.boxes.map(b => b.s * 100 + b.e).sort(),
+    boxesPos     : level.boxes.map(b => b.s * 100 + b.e).sort((a, b) => a - b),
     boxesId      : 0,
     gameId       : level.id,
     initialGameId: 0,
@@ -160,7 +160,7 @@ export function initGameState(level: ILevel): IGame {
       goalsPos.push(s*100 + e);
     }
   }}
-  goalsPos.sort();
+  goalsPos.sort((a, b) => a - b);
 
   game.solvedBoxesId = getNumArrId(goalsPos);
 
