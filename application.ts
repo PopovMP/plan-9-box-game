@@ -252,7 +252,7 @@ export function main(): void {
   function playSolution(track: number[]): void {
     isReplaying  = true;
     isStopReplay = false;
-    const time_step = 500;
+    const time_step = 200;
     setTimeout(loop, time_step, 0);
 
     function loop(i: number): void {
@@ -276,24 +276,23 @@ export function main(): void {
   }
 
   function makeSolutionMove(move: number, callback: () => void): void {
-    const pos  = Math.trunc(move / 100);
-    const dir  = move % 100;
+    const time_step = 200;
+    const pos: number = Math.trunc(move / 100);
+    const dir: number = move % 100;
     const oppositePos: number = findOppositePosition(pos, dir);
 
     if (oppositePos === game.heroPos) {
-      moveBox(game.boxesPos, pos, dir);
-      game.heroPos = pos;
+      doMove(game, dir);
       callback();
       return;
     }
 
     const heroTrack: number[] = findHeroTrack(game, oppositePos);
-    loop(0);
+    followTrackLoop(0);
 
-    function loop(i: number): void {
+    function followTrackLoop(i: number): void {
       if (i >= heroTrack.length) {
-        moveBox(game.boxesPos, pos, dir);
-        game.heroPos = pos;
+        doMove(game, dir);
         callback();
         return;
       }
@@ -301,7 +300,7 @@ export function main(): void {
       game.heroPos = heroTrack[i];
       render(view.board, game, model.scale);
 
-      setTimeout(loop, 200, i + 1);
+      setTimeout(followTrackLoop, time_step, i + 1);
     }
   }
 

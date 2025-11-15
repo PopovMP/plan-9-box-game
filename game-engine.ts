@@ -190,35 +190,19 @@ export function findOppositePosition(pos: number, dir: number): number {
   throw new Error("Unreachable");
 }
 
-export function findHeroTrack(game: IGame, pos: number): number[] {
-  const distanceMap = new Array(game.map.length);
-  for (let i = 0; i < game.map.length; i++) {
+export function findHeroTrack(game: IGame, targetPos: number): number[] {
+  const distanceMap: number[][] = new Array(game.map.length);
+  for (let i = 0; i < distanceMap.length; i++) {
     distanceMap[i] = new Array(game.map[0].length).fill(Number.MAX_SAFE_INTEGER);
   }
-  const posS = Math.trunc(pos / 100);
-  const posE = pos % 100;
-  distanceMap[posS][posE] = 0;
+  const targetPosSouth: number = Math.trunc(targetPos / 100);
+  const targetPosEast : number = targetPos % 100;
+  distanceMap[targetPosSouth][targetPosEast] = 0;
 
-  loop([pos]);
+  setDistanceMapLoop([targetPos]);
+  return findShortestPath();
 
-  const heroTrack: number[] = [];
-  let hs  = Math.trunc(game.heroPos / 100);
-  let he  = game.heroPos % 100;
-  let min = Number.MAX_SAFE_INTEGER;
-  do {
-    let minPos = 0;
-    if (distanceMap[hs-1][he] < min) { minPos = (hs-1)*100 + he; min = distanceMap[hs-1][he]; }
-    if (distanceMap[hs+1][he] < min) { minPos = (hs+1)*100 + he; min = distanceMap[hs+1][he]; }
-    if (distanceMap[hs][he-1] < min) { minPos = hs*100 + (he-1); min = distanceMap[hs][he-1]; }
-    if (distanceMap[hs][he+1] < min) { minPos = hs*100 + (he+1); min = distanceMap[hs][he+1]; }
-    hs = Math.trunc(minPos / 100);
-    he = minPos % 100;
-    heroTrack.push(minPos);
-  } while (min > 0);
-
-  return heroTrack;
-
-  function loop(nodes: number[]): void {
+  function setDistanceMapLoop(nodes: number[]): void {
     if (nodes.length === 0) return;
 
     const neighbours: number[] = [];
@@ -252,7 +236,25 @@ export function findHeroTrack(game: IGame, pos: number): number[] {
       }
     }
 
-    loop(neighbours);
+    setDistanceMapLoop(neighbours);
   }
 
+  function findShortestPath(): number[] {
+    const heroTrack: number[] = [];
+    let s: number = Math.trunc(game.heroPos / 100);
+    let e: number = game.heroPos % 100;
+    let minDist = distanceMap[s][e];
+    do {
+      let minPos = 0;
+      if (distanceMap[s-1][e] < minDist) { minPos = (s-1)*100 + e; minDist = distanceMap[s-1][e]; }
+      if (distanceMap[s+1][e] < minDist) { minPos = (s+1)*100 + e; minDist = distanceMap[s+1][e]; }
+      if (distanceMap[s][e-1] < minDist) { minPos = s*100 + (e-1); minDist = distanceMap[s][e-1]; }
+      if (distanceMap[s][e+1] < minDist) { minPos = s*100 + (e+1); minDist = distanceMap[s][e+1]; }
+      s = Math.trunc(minPos / 100);
+      e = minPos % 100;
+      heroTrack.push(minPos);
+    } while (minDist > 0);
+
+    return heroTrack;
+  }
 }

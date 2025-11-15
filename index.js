@@ -192,43 +192,17 @@ var App = (() => {
     if (dir & RIGHT) return s * 100 + (e - 1);
     throw new Error("Unreachable");
   }
-  function findHeroTrack(game, pos) {
+  function findHeroTrack(game, targetPos) {
     const distanceMap = new Array(game.map.length);
-    for (let i = 0; i < game.map.length; i++) {
+    for (let i = 0; i < distanceMap.length; i++) {
       distanceMap[i] = new Array(game.map[0].length).fill(Number.MAX_SAFE_INTEGER);
     }
-    const posS = Math.trunc(pos / 100);
-    const posE = pos % 100;
-    distanceMap[posS][posE] = 0;
-    loop([pos]);
-    const heroTrack = [];
-    let hs = Math.trunc(game.heroPos / 100);
-    let he = game.heroPos % 100;
-    let min = Number.MAX_SAFE_INTEGER;
-    do {
-      let minPos = 0;
-      if (distanceMap[hs - 1][he] < min) {
-        minPos = (hs - 1) * 100 + he;
-        min = distanceMap[hs - 1][he];
-      }
-      if (distanceMap[hs + 1][he] < min) {
-        minPos = (hs + 1) * 100 + he;
-        min = distanceMap[hs + 1][he];
-      }
-      if (distanceMap[hs][he - 1] < min) {
-        minPos = hs * 100 + (he - 1);
-        min = distanceMap[hs][he - 1];
-      }
-      if (distanceMap[hs][he + 1] < min) {
-        minPos = hs * 100 + (he + 1);
-        min = distanceMap[hs][he + 1];
-      }
-      hs = Math.trunc(minPos / 100);
-      he = minPos % 100;
-      heroTrack.push(minPos);
-    } while (min > 0);
-    return heroTrack;
-    function loop(nodes) {
+    const targetPosSouth = Math.trunc(targetPos / 100);
+    const targetPosEast = targetPos % 100;
+    distanceMap[targetPosSouth][targetPosEast] = 0;
+    setDistanceMapLoop([targetPos]);
+    return findShortestPath();
+    function setDistanceMapLoop(nodes) {
       if (nodes.length === 0) return;
       const neighbours = [];
       for (const node of nodes) {
@@ -252,7 +226,36 @@ var App = (() => {
           neighbours.push(s * 100 + (e + 1));
         }
       }
-      loop(neighbours);
+      setDistanceMapLoop(neighbours);
+    }
+    function findShortestPath() {
+      const heroTrack = [];
+      let s = Math.trunc(game.heroPos / 100);
+      let e = game.heroPos % 100;
+      let minDist = distanceMap[s][e];
+      do {
+        let minPos = 0;
+        if (distanceMap[s - 1][e] < minDist) {
+          minPos = (s - 1) * 100 + e;
+          minDist = distanceMap[s - 1][e];
+        }
+        if (distanceMap[s + 1][e] < minDist) {
+          minPos = (s + 1) * 100 + e;
+          minDist = distanceMap[s + 1][e];
+        }
+        if (distanceMap[s][e - 1] < minDist) {
+          minPos = s * 100 + (e - 1);
+          minDist = distanceMap[s][e - 1];
+        }
+        if (distanceMap[s][e + 1] < minDist) {
+          minPos = s * 100 + (e + 1);
+          minDist = distanceMap[s][e + 1];
+        }
+        s = Math.trunc(minPos / 100);
+        e = minPos % 100;
+        heroTrack.push(minPos);
+      } while (minDist > 0);
+      return heroTrack;
     }
   }
 
@@ -2830,7 +2833,7 @@ var App = (() => {
     function playSolution(track) {
       isReplaying = true;
       isStopReplay = false;
-      const time_step = 500;
+      const time_step = 200;
       setTimeout(loop, time_step, 0);
       function loop(i) {
         if (i >= track.length || isStopReplay) {
@@ -2851,27 +2854,26 @@ var App = (() => {
       }
     }
     function makeSolutionMove(move, callback) {
+      const time_step = 200;
       const pos = Math.trunc(move / 100);
       const dir = move % 100;
       const oppositePos = findOppositePosition(pos, dir);
       if (oppositePos === game.heroPos) {
-        moveBox(game.boxesPos, pos, dir);
-        game.heroPos = pos;
+        doMove(game, dir);
         callback();
         return;
       }
       const heroTrack = findHeroTrack(game, oppositePos);
-      loop(0);
-      function loop(i) {
+      followTrackLoop(0);
+      function followTrackLoop(i) {
         if (i >= heroTrack.length) {
-          moveBox(game.boxesPos, pos, dir);
-          game.heroPos = pos;
+          doMove(game, dir);
           callback();
           return;
         }
         game.heroPos = heroTrack[i];
         render(view.board, game, model.scale);
-        setTimeout(loop, 200, i + 1);
+        setTimeout(followTrackLoop, time_step, i + 1);
       }
     }
     function onReplay(event) {
