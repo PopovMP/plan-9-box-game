@@ -1,5 +1,5 @@
 import { type IGame, UP, LEFT, RIGHT, DOWN } from "./def.ts";
-import { setGameState } from "./game-engine.ts";
+import { moveBox, setGameState } from "./game-engine.ts";
 
 export function initBoxMap(game: IGame): void {
   const mapWidth = game.map[0].length;
@@ -147,100 +147,75 @@ export function setPossibleMoves(game: IGame): void {
   }
 }
 
-export function runSolver(game: IGame): void {
-  void game;
-  const pastGames = new Set();
+export function runSolver(game: IGame): number[] {
+  const pastGames = new Set<number>();
   const track: number[] = [];
+  let   calcs = 0;
+  setState(game);
+  pastGames.add(game.gameId);
 
-
-  while (true) {
-    //const trackBackup = track.slice();
-
-    const heroBack  = game.heroPos;
-    const boxesBack = game.boxesPos.slice();
-
-    const steps = doBranchMoves(0);
-    console.log("Steps: ", steps);
-
-    console.log("Tracks :", track.join(", "));
-    console.log("Her pos:", game.heroPos);
-    console.log("Box pos:", game.boxesPos.join(", "));
-    console.log("===========================");
-
-    if (game.boxesId === game.solvedBoxesId) {
-      console.log("Solved");
-      console.log(track.join(", "));
-      break;
-    }
-
-    game.heroPos  = heroBack;
-    game.boxesPos = boxesBack.slice();
-    setBoxMap(game);
-    setStepMap(game);
-    setPossibleMoves(game);
-    break;
-    // track = trackBackup.slice();
+  let isSolved = false;
+  try {
+    isSolved = doBranchMoves();
+    setState(game);
+  } catch (e){
+    console.error((e as Error).message);
+    setState(game);
   }
 
+  if (isSolved) {
+    console.log("Solved!");
+    console.log("Calcs:", calcs);
+    console.log("Track:", track.join(", "));
+    console.log("Moves:", track.length);
+    return track;
+  } else {
+    console.log("Not solved!");
+    console.log("Calcs:", calcs);
+    return [];
+  }
 
-  function doBranchMoves(steps: number): number {
-
+  function doBranchMoves(): boolean {
     for (const move of game.possibleMoves) {
-      if (move > 0) {
-        const heroBack  = game.heroPos;
-        const boxesBack = game.boxesPos.slice();
+      const heroBack  = game.heroPos;
+      const boxesBack = game.boxesPos.slice();
 
-        game.heroPos = makeBoxMove(game.boxesPos, move);
-        steps += 1;
+      const pos = Math.trunc(move / 100);
+      const dir = move % 100;
+      moveBox(game.boxesPos, pos, dir);
+      game.heroPos = pos;
+      setState(game);
+      calcs++;
 
-        if (pastGames.has(game.gameId)) {
-          game.heroPos  = heroBack;
-          game.boxesPos = boxesBack.slice();
-          continue;
-        }
-
-        pastGames.add(game.gameId);
-
-
-        if (game.boxesId === game.solvedBoxesId) {
-          return steps;
-        }
-
-        setBoxMap(game);
-        setStepMap(game);
-        setPossibleMoves(game);
-
-        if (game.possibleMoves[0] === 0) {
-          return steps;
-        }
-
-        track.push(move);
-        setGameState(game);
-        return doBranchMoves(steps);
+      if (pastGames.has(game.gameId)) {
+        game.heroPos  = heroBack;
+        game.boxesPos = boxesBack;
+        setState(game);
+        continue;
       }
+
+      pastGames.add(game.gameId);
+      track.push(move);
+
+      if (game.boxesId === game.solvedBoxesId)
+        return true; // Solved
+
+      if (doBranchMoves())
+        return true; // solved
+
+      track.pop();
+      game.heroPos  = heroBack;
+      game.boxesPos = boxesBack;
+      setState(game);
     }
 
-    return steps;
+    return false;
   }
 }
 
-function makeBoxMove(boxesPos: number[], move: number): number {
-  const dir = move % 100;
-  const moveFromPos = Math.trunc(move / 100);
-  for (let i = 0; i < boxesPos.length; i++) {
-    const boxPos = boxesPos[i];
-    if (boxPos === moveFromPos) {
-      const s = Math.trunc(boxPos / 100);
-      const e = boxPos % 100;
-           if (dir & UP   ) boxesPos[i] = (s-1) * 100 + e;
-      else if (dir & DOWN ) boxesPos[i] = (s+1) * 100 + e;
-      else if (dir & LEFT ) boxesPos[i] = s * 100 + (e-1);
-      else if (dir & RIGHT) boxesPos[i] = s * 100 + (e+1);
-      boxesPos.sort();
-      return 100*s + e;
-    }
-  }
-
-  throw new Error("Unreachable");
+function setState(game: IGame): void {
+  setBoxMap(game);
+  setStepMap(game);
+  setPossibleMoves(game);
+  setGameState(game);
 }
-

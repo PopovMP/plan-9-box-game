@@ -184,6 +184,181 @@ var App = (() => {
     return res >>> 0;
   }
 
+  // solver.ts
+  function initBoxMap(game) {
+    const mapWidth = game.map[0].length;
+    game.boxMap = new Array(game.map.length);
+    for (let i = 0, len = game.map.length; i < len; i++) {
+      game.boxMap[i] = new Array(mapWidth).fill(false);
+    }
+  }
+  function setBoxMap(game) {
+    const boxMap = game.boxMap;
+    for (let i = 0, len = game.map.length; i < len; i++) {
+      boxMap[i].fill(false);
+    }
+    for (const boxPos of game.boxesPos) {
+      const s = Math.trunc(boxPos / 100);
+      const e = boxPos % 100;
+      boxMap[s][e] = true;
+    }
+  }
+  function initGoodMap(game) {
+    const mapWidth = game.map[0].length;
+    game.goodMap = new Array(game.map.length);
+    for (let i = 0, len = game.map.length; i < len; i++) {
+      game.goodMap[i] = new Array(mapWidth).fill(false);
+    }
+  }
+  function setGoodMap(game) {
+    const mapWidth = game.map[0].length;
+    const gameMap = game.map;
+    const goodMap = game.goodMap;
+    for (let i = 1, len = gameMap.length; i < len - 1; i++) {
+      goodMap[i] = new Array(mapWidth).fill(false);
+    }
+    let isChanged;
+    do {
+      isChanged = false;
+      for (let i = 1, len = gameMap.length; i < len - 1; i++) {
+        for (let j = 1; j < mapWidth - 1; j++) {
+          let ch;
+          if (goodMap[i][j]) continue;
+          if ((ch = gameMap[i][j]) === "#" || ch === "_") continue;
+          if (gameMap[i][j] === ".") {
+            goodMap[i][j] = true;
+            isChanged = true;
+            continue;
+          }
+          if (goodMap[i - 1][j] && ((ch = gameMap[i + 1][j]) === " " || ch === ".") || goodMap[i][j + 1] && ((ch = gameMap[i][j - 1]) === " " || ch === ".") || goodMap[i + 1][j] && ((ch = gameMap[i - 1][j]) === " " || ch === ".") || goodMap[i][j - 1] && ((ch = gameMap[i][j + 1]) === " " || ch === ".")) {
+            goodMap[i][j] = true;
+            isChanged = true;
+            continue;
+          }
+        }
+      }
+    } while (isChanged);
+  }
+  function initStepMap(game) {
+    const mapWidth = game.map[0].length;
+    game.stepMap = new Array(game.map.length);
+    for (let i = 0, len = game.map.length; i < len; i++) {
+      game.stepMap[i] = new Array(mapWidth).fill(false);
+    }
+  }
+  function setStepMap(game) {
+    const gameMap = game.map;
+    const mapWidth = gameMap[0].length;
+    const boxMap = game.boxMap;
+    const stepMap = game.stepMap;
+    for (let i = 0, len = gameMap.length; i < len; i++) {
+      stepMap[i] = new Array(mapWidth).fill(false);
+    }
+    const hs = Math.trunc(game.heroPos / 100);
+    const he = game.heroPos % 100;
+    stepMap[hs][he] = true;
+    let isChanged;
+    do {
+      isChanged = false;
+      for (let i = 1, len = gameMap.length; i < len - 1; i++) {
+        for (let j = 1; j < mapWidth - 1; j++) {
+          let ch;
+          if (stepMap[i][j]) continue;
+          if ((ch = gameMap[i][j]) === "#" || ch === "_" || boxMap[i][j]) continue;
+          if (stepMap[i - 1][j] || stepMap[i][j + 1] || stepMap[i + 1][j] || stepMap[i][j - 1]) {
+            stepMap[i][j] = true;
+            isChanged = true;
+            continue;
+          }
+        }
+      }
+    } while (isChanged);
+    return stepMap;
+  }
+  function setPossibleMoves(game) {
+    const goodMap = game.goodMap;
+    const stepMap = game.stepMap;
+    const boxMap = game.boxMap;
+    game.possibleMoves.length = 0;
+    for (const boxPos of game.boxesPos) {
+      const s = Math.trunc(boxPos / 100);
+      const e = boxPos % 100;
+      if (goodMap[s - 1][e] && stepMap[s + 1][e] && !boxMap[s + 1][e] && !boxMap[s - 1][e]) {
+        game.possibleMoves.push(boxPos * 100 + UP);
+      }
+      if (goodMap[s + 1][e] && stepMap[s - 1][e] && !boxMap[s + 1][e] && !boxMap[s - 1][e]) {
+        game.possibleMoves.push(boxPos * 100 + DOWN);
+      }
+      if (goodMap[s][e + 1] && stepMap[s][e - 1] && !boxMap[s][e + 1] && !boxMap[s][e - 1]) {
+        game.possibleMoves.push(boxPos * 100 + RIGHT);
+      }
+      if (goodMap[s][e - 1] && stepMap[s][e + 1] && !boxMap[s][e + 1] && !boxMap[s][e - 1]) {
+        game.possibleMoves.push(boxPos * 100 + LEFT);
+      }
+    }
+  }
+  function runSolver(game) {
+    const pastGames = /* @__PURE__ */ new Set();
+    const track = [];
+    let calcs = 0;
+    setState(game);
+    pastGames.add(game.gameId);
+    let isSolved2 = false;
+    try {
+      isSolved2 = doBranchMoves();
+      setState(game);
+    } catch (e) {
+      console.error(e.message);
+      setState(game);
+    }
+    if (isSolved2) {
+      console.log("Solved!");
+      console.log("Calcs:", calcs);
+      console.log("Track:", track.join(", "));
+      console.log("Moves:", track.length);
+      return track;
+    } else {
+      console.log("Not solved!");
+      console.log("Calcs:", calcs);
+      return [];
+    }
+    function doBranchMoves() {
+      for (const move of game.possibleMoves) {
+        const heroBack = game.heroPos;
+        const boxesBack = game.boxesPos.slice();
+        const pos = Math.trunc(move / 100);
+        const dir = move % 100;
+        moveBox(game.boxesPos, pos, dir);
+        game.heroPos = pos;
+        setState(game);
+        calcs++;
+        if (pastGames.has(game.gameId)) {
+          game.heroPos = heroBack;
+          game.boxesPos = boxesBack;
+          setState(game);
+          continue;
+        }
+        pastGames.add(game.gameId);
+        track.push(move);
+        if (game.boxesId === game.solvedBoxesId)
+          return true;
+        if (doBranchMoves())
+          return true;
+        track.pop();
+        game.heroPos = heroBack;
+        game.boxesPos = boxesBack;
+        setState(game);
+      }
+      return false;
+    }
+  }
+  function setState(game) {
+    setBoxMap(game);
+    setStepMap(game);
+    setPossibleMoves(game);
+    setGameState(game);
+  }
+
   // easy-levels.ts
   var easyLevels = [
     {
@@ -2334,193 +2509,6 @@ var App = (() => {
     }
   }
 
-  // solver.ts
-  function initBoxMap(game) {
-    const mapWidth = game.map[0].length;
-    game.boxMap = new Array(game.map.length);
-    for (let i = 0, len = game.map.length; i < len; i++) {
-      game.boxMap[i] = new Array(mapWidth).fill(false);
-    }
-  }
-  function setBoxMap(game) {
-    const boxMap = game.boxMap;
-    for (let i = 0, len = game.map.length; i < len; i++) {
-      boxMap[i].fill(false);
-    }
-    for (const boxPos of game.boxesPos) {
-      const s = Math.trunc(boxPos / 100);
-      const e = boxPos % 100;
-      boxMap[s][e] = true;
-    }
-  }
-  function initGoodMap(game) {
-    const mapWidth = game.map[0].length;
-    game.goodMap = new Array(game.map.length);
-    for (let i = 0, len = game.map.length; i < len; i++) {
-      game.goodMap[i] = new Array(mapWidth).fill(false);
-    }
-  }
-  function setGoodMap(game) {
-    const mapWidth = game.map[0].length;
-    const gameMap = game.map;
-    const goodMap = game.goodMap;
-    for (let i = 1, len = gameMap.length; i < len - 1; i++) {
-      goodMap[i] = new Array(mapWidth).fill(false);
-    }
-    let isChanged;
-    do {
-      isChanged = false;
-      for (let i = 1, len = gameMap.length; i < len - 1; i++) {
-        for (let j = 1; j < mapWidth - 1; j++) {
-          let ch;
-          if (goodMap[i][j]) continue;
-          if ((ch = gameMap[i][j]) === "#" || ch === "_") continue;
-          if (gameMap[i][j] === ".") {
-            goodMap[i][j] = true;
-            isChanged = true;
-            continue;
-          }
-          if (goodMap[i - 1][j] && ((ch = gameMap[i + 1][j]) === " " || ch === ".") || goodMap[i][j + 1] && ((ch = gameMap[i][j - 1]) === " " || ch === ".") || goodMap[i + 1][j] && ((ch = gameMap[i - 1][j]) === " " || ch === ".") || goodMap[i][j - 1] && ((ch = gameMap[i][j + 1]) === " " || ch === ".")) {
-            goodMap[i][j] = true;
-            isChanged = true;
-            continue;
-          }
-        }
-      }
-    } while (isChanged);
-  }
-  function initStepMap(game) {
-    const mapWidth = game.map[0].length;
-    game.stepMap = new Array(game.map.length);
-    for (let i = 0, len = game.map.length; i < len; i++) {
-      game.stepMap[i] = new Array(mapWidth).fill(false);
-    }
-  }
-  function setStepMap(game) {
-    const gameMap = game.map;
-    const mapWidth = gameMap[0].length;
-    const boxMap = game.boxMap;
-    const stepMap = game.stepMap;
-    for (let i = 0, len = gameMap.length; i < len; i++) {
-      stepMap[i] = new Array(mapWidth).fill(false);
-    }
-    const hs = Math.trunc(game.heroPos / 100);
-    const he = game.heroPos % 100;
-    stepMap[hs][he] = true;
-    let isChanged;
-    do {
-      isChanged = false;
-      for (let i = 1, len = gameMap.length; i < len - 1; i++) {
-        for (let j = 1; j < mapWidth - 1; j++) {
-          let ch;
-          if (stepMap[i][j]) continue;
-          if ((ch = gameMap[i][j]) === "#" || ch === "_" || boxMap[i][j]) continue;
-          if (stepMap[i - 1][j] || stepMap[i][j + 1] || stepMap[i + 1][j] || stepMap[i][j - 1]) {
-            stepMap[i][j] = true;
-            isChanged = true;
-            continue;
-          }
-        }
-      }
-    } while (isChanged);
-    return stepMap;
-  }
-  function setPossibleMoves(game) {
-    const goodMap = game.goodMap;
-    const stepMap = game.stepMap;
-    const boxMap = game.boxMap;
-    game.possibleMoves.length = 0;
-    for (const boxPos of game.boxesPos) {
-      const s = Math.trunc(boxPos / 100);
-      const e = boxPos % 100;
-      if (goodMap[s - 1][e] && stepMap[s + 1][e] && !boxMap[s + 1][e] && !boxMap[s - 1][e]) {
-        game.possibleMoves.push(boxPos * 100 + UP);
-      }
-      if (goodMap[s + 1][e] && stepMap[s - 1][e] && !boxMap[s + 1][e] && !boxMap[s - 1][e]) {
-        game.possibleMoves.push(boxPos * 100 + DOWN);
-      }
-      if (goodMap[s][e + 1] && stepMap[s][e - 1] && !boxMap[s][e + 1] && !boxMap[s][e - 1]) {
-        game.possibleMoves.push(boxPos * 100 + RIGHT);
-      }
-      if (goodMap[s][e - 1] && stepMap[s][e + 1] && !boxMap[s][e + 1] && !boxMap[s][e - 1]) {
-        game.possibleMoves.push(boxPos * 100 + LEFT);
-      }
-    }
-  }
-  function runSolver(game) {
-    void game;
-    const pastGames = /* @__PURE__ */ new Set();
-    const track = [];
-    while (true) {
-      const heroBack = game.heroPos;
-      const boxesBack = game.boxesPos.slice();
-      const steps = doBranchMoves(0);
-      console.log("Steps: ", steps);
-      console.log("Tracks :", track.join(", "));
-      console.log("Her pos:", game.heroPos);
-      console.log("Box pos:", game.boxesPos.join(", "));
-      console.log("===========================");
-      if (game.boxesId === game.solvedBoxesId) {
-        console.log("Solved");
-        console.log(track.join(", "));
-        break;
-      }
-      game.heroPos = heroBack;
-      game.boxesPos = boxesBack.slice();
-      setBoxMap(game);
-      setStepMap(game);
-      setPossibleMoves(game);
-      break;
-    }
-    function doBranchMoves(steps) {
-      for (const move of game.possibleMoves) {
-        if (move > 0) {
-          const heroBack = game.heroPos;
-          const boxesBack = game.boxesPos.slice();
-          game.heroPos = makeBoxMove(game.boxesPos, move);
-          steps += 1;
-          if (pastGames.has(game.gameId)) {
-            game.heroPos = heroBack;
-            game.boxesPos = boxesBack.slice();
-            continue;
-          }
-          pastGames.add(game.gameId);
-          if (game.boxesId === game.solvedBoxesId) {
-            return steps;
-          }
-          setBoxMap(game);
-          setStepMap(game);
-          setPossibleMoves(game);
-          if (game.possibleMoves[0] === 0) {
-            return steps;
-          }
-          track.push(move);
-          setGameState(game);
-          return doBranchMoves(steps);
-        }
-      }
-      return steps;
-    }
-  }
-  function makeBoxMove(boxesPos, move) {
-    const dir = move % 100;
-    const moveFromPos = Math.trunc(move / 100);
-    for (let i = 0; i < boxesPos.length; i++) {
-      const boxPos = boxesPos[i];
-      if (boxPos === moveFromPos) {
-        const s = Math.trunc(boxPos / 100);
-        const e = boxPos % 100;
-        if (dir & UP) boxesPos[i] = (s - 1) * 100 + e;
-        else if (dir & DOWN) boxesPos[i] = (s + 1) * 100 + e;
-        else if (dir & LEFT) boxesPos[i] = s * 100 + (e - 1);
-        else if (dir & RIGHT) boxesPos[i] = s * 100 + (e + 1);
-        boxesPos.sort();
-        return 100 * s + e;
-      }
-    }
-    throw new Error("Unreachable");
-  }
-
   // application.ts
   function main() {
     const levels = easyLevels;
@@ -2538,6 +2526,7 @@ var App = (() => {
     };
     let game;
     let isReplaying = false;
+    let isStopReplay = false;
     setLevel(model.levelId);
     document.addEventListener("keydown", onKeyDown);
     view.replay.addEventListener("click", onReplay);
@@ -2556,6 +2545,7 @@ var App = (() => {
       setBoxMap(game);
       setStepMap(game);
       setPossibleMoves(game);
+      setGameState(game);
       view.levelId.textContent = (model.levelId + 1).toString();
       view.info.innerHTML = `Solved <strong>${model.solvedIds.length}</strong>
                            out of <strong>${levels.length}</strong> levels.`;
@@ -2638,13 +2628,22 @@ var App = (() => {
       view.next.classList.add("d-inline-block");
     }
     function onKeyDown(event) {
+      if (event.key === "x") {
+        event.preventDefault();
+        isStopReplay = true;
+        return;
+      }
       if (isReplaying) return;
       let dir = 0;
       let isMove = false;
       switch (event.key) {
-        case "s":
-          runSolver(game);
+        case "s": {
+          event.preventDefault();
+          const track = runSolver(game);
+          setLevel(model.levelId);
+          playSolution(track);
           return;
+        }
         case "+":
         case "=":
           event.preventDefault();
@@ -2722,16 +2721,40 @@ var App = (() => {
       setUndoStyle();
       setResetStyle();
     }
+    function playSolution(track) {
+      isReplaying = true;
+      isStopReplay = false;
+      const time_step = 500;
+      setTimeout(loop, time_step, 0);
+      function loop(i) {
+        if (i >= track.length || isStopReplay) {
+          isReplaying = false;
+          return;
+        }
+        const move = track[i];
+        const pos = Math.trunc(move / 100);
+        const dir = move % 100;
+        moveBox(game.boxesPos, pos, dir);
+        game.heroPos = pos;
+        setBoxMap(game);
+        setStepMap(game);
+        setPossibleMoves(game);
+        setGameState(game);
+        render(view.board, game, model.scale);
+        setTimeout(loop, time_step, i + 1);
+      }
+    }
     function onReplay(event) {
       event.preventDefault();
       if (isReplaying) return;
       if (!Array.isArray(model.replays[model.levelId]) || model.replays[model.levelId].length === 0) return;
       isReplaying = true;
+      isStopReplay = false;
       setLevel(model.levelId);
       const time_step = 200;
       setTimeout(loop, time_step, 0);
       function loop(i) {
-        if (i >= model.replays[model.levelId].length) {
+        if (i >= model.replays[model.levelId].length || isStopReplay) {
           isReplaying = false;
           return;
         }
@@ -2743,6 +2766,7 @@ var App = (() => {
         setBoxMap(game);
         setStepMap(game);
         setPossibleMoves(game);
+        setGameState(game);
         render(view.board, game, model.scale);
         setTimeout(loop, time_step, i + 1);
       }

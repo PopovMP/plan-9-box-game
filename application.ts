@@ -1,8 +1,8 @@
 import { type IGame, type ILevel, type IGameModel, UP, LEFT, RIGHT, DOWN, PUSH } from "./def.ts";
 import { canMove, doMove, isSolved, loadGame, storeGame, moveBox, makePointNext, setGameState, initGameState } from "./game-engine.ts";
+import { initGoodMap, setGoodMap, setPossibleMoves, initBoxMap, setBoxMap, initStepMap, setStepMap, runSolver } from "./solver.ts";
 import { easyLevels } from "./easy-levels.ts";
 import { render, scaleCanvas } from "./renderer.ts";
-import { initGoodMap, setGoodMap, setPossibleMoves, initBoxMap, setBoxMap, initStepMap, setStepMap, runSolver } from "./solver.ts";
 
 interface IView {
   board  : HTMLCanvasElement;
@@ -32,7 +32,8 @@ export function main(): void {
   } as IView;
 
   let game: IGame;
-  let isReplaying = false;
+  let isReplaying  = false;
+  let isStopReplay = false;
 
   setLevel(model.levelId);
   document.addEventListener("keydown", onKeyDown);
@@ -53,6 +54,7 @@ export function main(): void {
     setBoxMap(game);
     setStepMap(game);
     setPossibleMoves(game);
+    setGameState(game);
 
     view.levelId.textContent = (model.levelId + 1).toString();
     view.info.innerHTML = `Solved <strong>${model.solvedIds.length}</strong>
@@ -150,14 +152,23 @@ export function main(): void {
   }
 
   function onKeyDown(event: KeyboardEvent): void {
+    if (event.key === "x") {
+        event.preventDefault();
+        isStopReplay = true;
+        return;
+    }
     if (isReplaying) return;
     let dir = 0;
     let isMove = false;
 
     switch (event.key) {
-      case "s":
-        runSolver(game);
+      case "s": {
+        event.preventDefault();
+        const track: number[] = runSolver(game);
+        setLevel(model.levelId);
+        playSolution(track);
         return;
+      }
       case "+":
       case "=":
         event.preventDefault();
@@ -239,12 +250,40 @@ export function main(): void {
     setResetStyle();
   }
 
+  function playSolution(track: number[]): void {
+    isReplaying  = true;
+    isStopReplay = false;
+    const time_step = 500;
+    setTimeout(loop, time_step, 0);
+
+    function loop(i: number): void {
+      if (i >= track.length || isStopReplay) {
+        isReplaying = false;
+        return;
+      }
+
+      const move = track[i];
+      const pos = Math.trunc(move / 100);
+      const dir = move % 100;
+      moveBox(game.boxesPos, pos, dir);
+      game.heroPos = pos;
+
+      setBoxMap(game);
+      setStepMap(game);
+      setPossibleMoves(game);
+      setGameState(game);
+      render(view.board, game, model.scale);
+      setTimeout(loop, time_step, i + 1);
+    }
+  }
+
   function onReplay(event: Event): void {
     event.preventDefault();
     if (isReplaying) return;
     if (!Array.isArray(model.replays[model.levelId]) ||
         model.replays[model.levelId].length === 0) return;
-    isReplaying = true;
+    isReplaying  = true;
+    isStopReplay = false;
 
     setLevel(model.levelId);
 
@@ -252,7 +291,7 @@ export function main(): void {
     setTimeout(loop, time_step, 0);
 
     function loop(i: number): void {
-      if (i >= model.replays[model.levelId].length) {
+      if (i >= model.replays[model.levelId].length || isStopReplay) {
         isReplaying = false;
         return;
       }
@@ -266,6 +305,7 @@ export function main(): void {
       setBoxMap(game);
       setStepMap(game);
       setPossibleMoves(game);
+      setGameState(game);
       render(view.board, game, model.scale);
       setTimeout(loop, time_step, i + 1);
     }
