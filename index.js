@@ -300,9 +300,9 @@ var App = (() => {
   function runSolver(game) {
     const pastGames = /* @__PURE__ */ new Set();
     const track = [];
-    let calcs = 0;
     setState(game);
     pastGames.add(game.gameId);
+    let calcs = 0;
     let isSolved2 = false;
     try {
       isSolved2 = doBranchMoves();
@@ -312,14 +312,10 @@ var App = (() => {
       setState(game);
     }
     if (isSolved2) {
-      console.log("Solved!");
-      console.log("Calcs:", calcs);
-      console.log("Track:", track.join(", "));
-      console.log("Moves:", track.length);
+      console.log(`Solved! Calcs: ${calcs}, Steps: ${track.length}`);
       return track;
     } else {
-      console.log("Not solved!");
-      console.log("Calcs:", calcs);
+      console.log(`Not Solved! Calcs: ${calcs}`);
       return [];
     }
     function doBranchMoves() {

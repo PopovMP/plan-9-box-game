@@ -4,16 +4,16 @@ import { moveBox, setGameState } from "./game-engine.ts";
 export function initBoxMap(game: IGame): void {
   const mapWidth = game.map[0].length;
   game.boxMap = new Array(game.map.length);
-  for (let i = 0, len = game.map.length; i < len; i++) {
-    game.boxMap[i] = new Array(mapWidth).fill(false);
+  for (let s = 0, len = game.map.length; s < len; s++) {
+    game.boxMap[s] = new Array(mapWidth).fill(false);
   }
 }
 
 export function setBoxMap(game: IGame): void {
   const boxMap = game.boxMap;
   // Reset the map
-  for (let i = 0, len = game.map.length; i < len; i++) {
-    boxMap[i].fill(false);
+  for (let s = 0, len = game.map.length; s < len; s++) {
+    boxMap[s].fill(false);
   }
 
   // Set the boxes
@@ -27,8 +27,8 @@ export function setBoxMap(game: IGame): void {
 export function initGoodMap(game: IGame): void {
   const mapWidth = game.map[0].length;
   game.goodMap = new Array(game.map.length);
-  for (let i = 0, len = game.map.length; i < len; i++) {
-    game.goodMap[i] = new Array(mapWidth).fill(false);
+  for (let s = 0, len = game.map.length; s < len; s++) {
+    game.goodMap[s] = new Array(mapWidth).fill(false);
   }
 }
 
@@ -38,33 +38,33 @@ export function setGoodMap(game: IGame): void {
   const goodMap = game.goodMap;
 
   // Reset goodMap
-  for (let i = 1, len = gameMap.length; i < len - 1; i++) {
-    goodMap[i] = new Array(mapWidth).fill(false);
+  for (let s = 1, len = gameMap.length; s < len - 1; s++) {
+    goodMap[s] = new Array(mapWidth).fill(false);
   }
 
   let isChanged;
   do {
     isChanged = false;
-    for (let i = 1, len = gameMap.length; i < len - 1; i++) {
-    for (let j = 1; j < mapWidth - 1; j++) {
+    for (let s = 1, len = gameMap.length; s < len - 1; s++) {
+    for (let e = 1; e < mapWidth - 1; e++) {
       let ch: string;
-      if (goodMap[i][j]) continue;
-      if ((ch = gameMap[i][j]) === "#" || ch === "_") continue;
+      if (goodMap[s][e]) continue;
+      if ((ch = gameMap[s][e]) === "#" || ch === "_") continue;
 
       // It is goal tile
-      if (gameMap[i][j] === ".") {
-        goodMap[i][j] = true;
+      if (gameMap[s][e] === ".") {
+        goodMap[s][e] = true;
         isChanged = true;
         continue;
       }
 
       if (
-        (goodMap[i-1][j  ] && ((ch = gameMap[i+1][j  ]) === " " || ch === ".")) ||
-        (goodMap[i  ][j+1] && ((ch = gameMap[i  ][j-1]) === " " || ch === ".")) ||
-        (goodMap[i+1][j  ] && ((ch = gameMap[i-1][j  ]) === " " || ch === ".")) ||
-        (goodMap[i  ][j-1] && ((ch = gameMap[i  ][j+1]) === " " || ch === "."))
+        (goodMap[s-1][e  ] && ((ch = gameMap[s+1][e  ]) === " " || ch === ".")) ||
+        (goodMap[s  ][e+1] && ((ch = gameMap[s  ][e-1]) === " " || ch === ".")) ||
+        (goodMap[s+1][e  ] && ((ch = gameMap[s-1][e  ]) === " " || ch === ".")) ||
+        (goodMap[s  ][e-1] && ((ch = gameMap[s  ][e+1]) === " " || ch === "."))
       ) {
-        goodMap[i][j] = true;
+        goodMap[s][e] = true;
         isChanged = true;
         continue;
       }
@@ -75,8 +75,8 @@ export function setGoodMap(game: IGame): void {
 export function initStepMap(game: IGame): void {
   const mapWidth = game.map[0].length;
   game.stepMap = new Array(game.map.length);
-  for (let i = 0, len = game.map.length; i < len; i++) {
-    game.stepMap[i] = new Array(mapWidth).fill(false);
+  for (let s = 0, len = game.map.length; s < len; s++) {
+    game.stepMap[s] = new Array(mapWidth).fill(false);
   }
 }
 
@@ -100,19 +100,19 @@ export function setStepMap(game: IGame): boolean[][] {
   let isChanged;
   do {
     isChanged = false;
-    for (let i = 1, len = gameMap.length; i < len - 1; i++) {
-    for (let j = 1; j < mapWidth - 1; j++) {
+    for (let s = 1, len = gameMap.length; s < len - 1; s++) {
+    for (let e = 1; e < mapWidth - 1; e++) {
       let ch: string;
-      if (stepMap[i][j]) continue;
-      if ((ch = gameMap[i][j]) === "#" || ch === "_" || boxMap[i][j]) continue;
+      if (stepMap[s][e]) continue;
+      if ((ch = gameMap[s][e]) === "#" || ch === "_" || boxMap[s][e]) continue;
 
       if (
-        stepMap[i-1][j  ] ||
-        stepMap[i  ][j+1] ||
-        stepMap[i+1][j  ] ||
-        stepMap[i  ][j-1]
+        stepMap[s-1][e  ] ||
+        stepMap[s  ][e+1] ||
+        stepMap[s+1][e  ] ||
+        stepMap[s  ][e-1]
       ) {
-        stepMap[i][j] = true;
+        stepMap[s][e] = true;
         isChanged = true;
         continue;
       }
@@ -150,10 +150,10 @@ export function setPossibleMoves(game: IGame): void {
 export function runSolver(game: IGame): number[] {
   const pastGames = new Set<number>();
   const track: number[] = [];
-  let   calcs = 0;
   setState(game);
   pastGames.add(game.gameId);
 
+  let calcs    = 0;
   let isSolved = false;
   try {
     isSolved = doBranchMoves();
@@ -164,14 +164,10 @@ export function runSolver(game: IGame): number[] {
   }
 
   if (isSolved) {
-    console.log("Solved!");
-    console.log("Calcs:", calcs);
-    console.log("Track:", track.join(", "));
-    console.log("Moves:", track.length);
+    console.log(`Solved! Calcs: ${calcs}, Steps: ${track.length}`);
     return track;
   } else {
-    console.log("Not solved!");
-    console.log("Calcs:", calcs);
+    console.log(`Not Solved! Calcs: ${calcs}`);
     return [];
   }
 
