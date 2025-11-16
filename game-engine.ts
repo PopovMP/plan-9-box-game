@@ -149,7 +149,7 @@ export function initGameState(level: ILevel): IGame {
   };
 
   game.boxesId       = getNumArrId(game.boxesPos);
-  game.gameId        = (31 * game.boxesId + game.heroPos) >>> 0;
+  game.gameId        = (31 * (game.boxesId | 0) + game.heroPos) >>> 0;
   game.initialGameId = game.gameId;
 
   const mapWidth = game.map[0].length;
@@ -169,7 +169,7 @@ export function initGameState(level: ILevel): IGame {
 
 export function setGameState(game: IGame): void {
   game.boxesId = getNumArrId(game.boxesPos);
-  game.gameId  = (31 * game.boxesId + game.heroPos) >>> 0;
+  game.gameId  = (31 * (game.boxesId | 0) + game.heroPos) >>> 0;
 }
 
 function getNumArrId(nums: number[]): number {

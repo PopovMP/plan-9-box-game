@@ -157,7 +157,7 @@ var App = (() => {
       solvedBoxesId: 0
     };
     game.boxesId = getNumArrId(game.boxesPos);
-    game.gameId = 31 * game.boxesId + game.heroPos >>> 0;
+    game.gameId = 31 * (game.boxesId | 0) + game.heroPos >>> 0;
     game.initialGameId = game.gameId;
     const mapWidth = game.map[0].length;
     const goalsPos = [];
@@ -174,7 +174,7 @@ var App = (() => {
   }
   function setGameState(game) {
     game.boxesId = getNumArrId(game.boxesPos);
-    game.gameId = 31 * game.boxesId + game.heroPos >>> 0;
+    game.gameId = 31 * (game.boxesId | 0) + game.heroPos >>> 0;
   }
   function getNumArrId(nums) {
     let res = 0;
@@ -395,9 +395,8 @@ var App = (() => {
     game.boxesPos = initialBoxesPos;
     setState(game);
     if (isSolved2) {
-      console.log(`Solved! Calcs: ${calcs}, Steps: ${track.length}`);
       optimizeTrack(game, track);
-      console.log(`Optimized steps: ${track.length}`);
+      console.log(`Solved! Calcs: ${calcs}, Steps: ${track.length}`);
       return track;
     } else {
       console.log(`Not Solved! Calcs: ${calcs}`);

@@ -169,9 +169,8 @@ export function runSolver(game: IGame): number[] {
   setState(game);
 
   if (isSolved) {
-    console.log(`Solved! Calcs: ${calcs}, Steps: ${track.length}`);
     optimizeTrack(game, track);
-    console.log(`Optimized steps: ${track.length}`);
+    console.log(`Solved! Calcs: ${calcs}, Steps: ${track.length}`);
     return track;
   } else {
     console.log(`Not Solved! Calcs: ${calcs}`);
