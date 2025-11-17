@@ -1,5 +1,5 @@
 import { type IGame,
-//  UP, LEFT, RIGHT, DOWN,
+  UP, LEFT, RIGHT, DOWN,
 } from "./def.ts";
 
 export const TILE_SIZE = 32;
@@ -69,6 +69,17 @@ export function render(canvas: HTMLCanvasElement, game: IGame, scale: number): v
     ctx.stroke();
   }
 
+  // Hover point
+  if (game.mouseModel.hoverPos > 0) {
+    const s    : number = Math.trunc(game.mouseModel.hoverPos / 100);
+    const e    : number = game.mouseModel.hoverPos % 100;
+    const tileX: number = e * tileSize;
+    const tileY: number = s * tileSize;
+    const midX : number = tileX + tileSize / 2;
+    const midY : number = tileY + tileSize / 2;
+    drawDot(midX, midY, 3*dotR, "#3600f8ff");
+  }
+
   // Draw hero
   const hs = Math.trunc(game.heroPos / 100);
   const he = game.heroPos % 100;
@@ -83,14 +94,21 @@ export function render(canvas: HTMLCanvasElement, game: IGame, scale: number): v
     ctx.fillText("📦", tileX + tileSize / 2, tileY + tileSize / 2);
   }
 
-  if (game.mouseModel.hoverPos > 0) {
+  // Push arrow
+  if (game.mouseModel.boxDir > 0) {
+    const dir = game.mouseModel.boxDir;
+    ctx.font = Math.round(tileSize - 10) + "px Sansserif";
+    const arrow = dir === UP    ? "⇧"
+                : dir === LEFT  ? "⇦"
+                : dir === RIGHT ? "⇨"
+                : dir === DOWN  ? "⇩"
+                : "";
+
     const s    : number = Math.trunc(game.mouseModel.hoverPos / 100);
     const e    : number = game.mouseModel.hoverPos % 100;
     const tileX: number = e * tileSize;
     const tileY: number = s * tileSize;
-    const midX : number = tileX + tileSize / 2;
-    const midY : number = tileY + tileSize / 2;
-    drawDot(midX, midY, 3*dotR, "#3600f8ff");
+    ctx.fillText(arrow, tileX + tileSize / 2, tileY + tileSize / 2);
   }
 
   // // Mark good tiles

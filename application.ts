@@ -57,6 +57,7 @@ export function main(): void {
     game.mouseModel.hoverPos = 0;
     game.mouseModel.boxDir   = 0;
     game.mouseModel.heroTrack.length = 0;
+    view.board.style.cursor = "default";
     render(view.board, game, model.scale);
   }
 
@@ -66,16 +67,37 @@ export function main(): void {
 
     const oldHoverPos = game.mouseModel.hoverPos;
     game.mouseModel.hoverPos = 0;
+    game.mouseModel.boxDir   = 0;
     game.mouseModel.heroTrack.length = 0;
+    view.board.style.cursor = "default";
 
     const boardRect: DOMRect = view.board.getBoundingClientRect();
     const s: number = Math.trunc((event.pageY - boardRect.top ) / (TILE_SIZE * model.scale));
     const e: number = Math.trunc((event.pageX - boardRect.left) / (TILE_SIZE * model.scale));
+    const hoverPos = 100 * s + e;
     if (game.stepMap[s][e]) {
-      const hoverPos = 100 * s + e;
       game.mouseModel.hoverPos = hoverPos;
       if (hoverPos !== game.heroPos) {
         game.mouseModel.heroTrack = findHeroTrack(game, hoverPos);
+        view.board.style.cursor = "pointer";
+      }
+    }
+
+    if (game.boxesPos.includes(hoverPos)) {
+      const hs: number = Math.trunc(game.heroPos / 100);
+      const he: number = game.heroPos % 100;
+
+      let dir = 0;
+           if (hs === s-1 && he === e  ) dir = DOWN;
+      else if (hs === s+1 && he === e  ) dir = UP;
+      else if (hs === s   && he === e+1) dir = LEFT;
+      else if (hs === s   && he === e-1) dir = RIGHT;
+      if (dir > 0) {
+        const pushDir = canMove(game, dir);
+        if (pushDir > 0 && (pushDir & PUSH)) {
+          game.mouseModel.hoverPos = hoverPos;
+          game.mouseModel.boxDir   = dir;
+        }
       }
     }
 
@@ -86,6 +108,20 @@ export function main(): void {
 
   function onMouseDown(event: MouseEvent): void {
     event.preventDefault();
+
+    if (game.mouseModel.hoverPos > 0 && game.mouseModel.boxDir > 0) {
+      let dir = 0;
+      if ((dir = canMove(game, game.mouseModel.boxDir)) && !isSolved(game)) {
+        game.mouseModel.heroTrack.length = 0;
+        game.mouseModel.hoverPos = 0;
+        game.mouseModel.boxDir   = 0;
+        doMove(game, dir);
+        replay.push(dir);
+        doPostMoveSetup();
+      }
+      return;
+    }
+
     if (game.mouseModel.heroTrack.length === 0 || isReplaying) return;
     isReplaying = true;
 
@@ -93,6 +129,8 @@ export function main(): void {
     const track: number[] = game.mouseModel.heroTrack.slice();
     game.mouseModel.heroTrack.length = 0;
     game.mouseModel.hoverPos = 0;
+    game.mouseModel.boxDir   = 0;
+    view.board.style.cursor = "default";
 
     followTrackLoop();
 
@@ -101,8 +139,24 @@ export function main(): void {
         isReplaying = false;
         return;
       }
-      game.heroPos = track.shift() as number;
-      render(view.board, game, model.scale);
+
+      const pos = track.shift() as number;
+      const s = Math.trunc(pos/100);
+      const e = pos % 100;
+      const hs: number = Math.trunc(game.heroPos / 100);
+      const he: number = game.heroPos % 100;
+
+      let dir = 0;
+           if (hs === s-1 && he === e  ) dir = DOWN;
+      else if (hs === s+1 && he === e  ) dir = UP;
+      else if (hs === s   && he === e+1) dir = LEFT;
+      else if (hs === s   && he === e-1) dir = RIGHT;
+      if ((dir = canMove(game, dir)) && !isSolved(game)) {
+        doMove(game, dir);
+        replay.push(dir);
+        doPostMoveSetup();
+      }
+
       setTimeout(followTrackLoop, time_step);
     }
   }
@@ -301,17 +355,21 @@ export function main(): void {
     }
 
     if (isMove) {
-      setBoxMap(game);
-      setStepMap(game);
-      setPossibleMoves(game);
-      setGameState(game);
-      render(view.board, game, model.scale);
-      if (isSolved(game)) {
-        markGameSolved();
-      }
-      setUndoStyle();
-      setResetStyle();
+      doPostMoveSetup();
     }
+  }
+
+  function doPostMoveSetup(): void {
+    setBoxMap(game);
+    setStepMap(game);
+    setPossibleMoves(game);
+    setGameState(game);
+    render(view.board, game, model.scale);
+    if (isSolved(game)) {
+      markGameSolved();
+    }
+    setUndoStyle();
+    setResetStyle();
   }
 
   function playSolution(track: number[]): void {

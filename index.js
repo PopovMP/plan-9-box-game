@@ -2628,6 +2628,15 @@ var App = (() => {
       ctx.lineWidth = 3;
       ctx.stroke();
     }
+    if (game.mouseModel.hoverPos > 0) {
+      const s = Math.trunc(game.mouseModel.hoverPos / 100);
+      const e = game.mouseModel.hoverPos % 100;
+      const tileX = e * tileSize;
+      const tileY = s * tileSize;
+      const midX = tileX + tileSize / 2;
+      const midY = tileY + tileSize / 2;
+      drawDot(midX, midY, 3 * dotR, "#3600f8ff");
+    }
     const hs = Math.trunc(game.heroPos / 100);
     const he = game.heroPos % 100;
     ctx.fillText("\u{1F9D1}\u200D\u{1F3ED}", he * tileSize + tileSize / 2, hs * tileSize + tileSize / 2);
@@ -2638,14 +2647,15 @@ var App = (() => {
       const tileY = s * tileSize;
       ctx.fillText("\u{1F4E6}", tileX + tileSize / 2, tileY + tileSize / 2);
     }
-    if (game.mouseModel.hoverPos > 0) {
+    if (game.mouseModel.boxDir > 0) {
+      const dir = game.mouseModel.boxDir;
+      ctx.font = Math.round(tileSize - 10) + "px Sansserif";
+      const arrow = dir === UP ? "\u21E7" : dir === LEFT ? "\u21E6" : dir === RIGHT ? "\u21E8" : dir === DOWN ? "\u21E9" : "";
       const s = Math.trunc(game.mouseModel.hoverPos / 100);
       const e = game.mouseModel.hoverPos % 100;
       const tileX = e * tileSize;
       const tileY = s * tileSize;
-      const midX = tileX + tileSize / 2;
-      const midY = tileY + tileSize / 2;
-      drawDot(midX, midY, 3 * dotR, "#3600f8ff");
+      ctx.fillText(arrow, tileX + tileSize / 2, tileY + tileSize / 2);
     }
     function drawDot(x, y, r, color) {
       ctx.beginPath();
@@ -2691,6 +2701,7 @@ var App = (() => {
       game.mouseModel.hoverPos = 0;
       game.mouseModel.boxDir = 0;
       game.mouseModel.heroTrack.length = 0;
+      view.board.style.cursor = "default";
       render(view.board, game, model.scale);
     }
     function onMouseMove(event) {
@@ -2698,15 +2709,34 @@ var App = (() => {
       if (isReplaying) return;
       const oldHoverPos = game.mouseModel.hoverPos;
       game.mouseModel.hoverPos = 0;
+      game.mouseModel.boxDir = 0;
       game.mouseModel.heroTrack.length = 0;
+      view.board.style.cursor = "default";
       const boardRect = view.board.getBoundingClientRect();
       const s = Math.trunc((event.pageY - boardRect.top) / (TILE_SIZE * model.scale));
       const e = Math.trunc((event.pageX - boardRect.left) / (TILE_SIZE * model.scale));
+      const hoverPos = 100 * s + e;
       if (game.stepMap[s][e]) {
-        const hoverPos = 100 * s + e;
         game.mouseModel.hoverPos = hoverPos;
         if (hoverPos !== game.heroPos) {
           game.mouseModel.heroTrack = findHeroTrack(game, hoverPos);
+          view.board.style.cursor = "pointer";
+        }
+      }
+      if (game.boxesPos.includes(hoverPos)) {
+        const hs = Math.trunc(game.heroPos / 100);
+        const he = game.heroPos % 100;
+        let dir = 0;
+        if (hs === s - 1 && he === e) dir = DOWN;
+        else if (hs === s + 1 && he === e) dir = UP;
+        else if (hs === s && he === e + 1) dir = LEFT;
+        else if (hs === s && he === e - 1) dir = RIGHT;
+        if (dir > 0) {
+          const pushDir = canMove(game, dir);
+          if (pushDir > 0 && pushDir & PUSH) {
+            game.mouseModel.hoverPos = hoverPos;
+            game.mouseModel.boxDir = dir;
+          }
         }
       }
       if (game.mouseModel.hoverPos !== oldHoverPos) {
@@ -2715,20 +2745,47 @@ var App = (() => {
     }
     function onMouseDown(event) {
       event.preventDefault();
+      if (game.mouseModel.hoverPos > 0 && game.mouseModel.boxDir > 0) {
+        let dir = 0;
+        if ((dir = canMove(game, game.mouseModel.boxDir)) && !isSolved(game)) {
+          game.mouseModel.heroTrack.length = 0;
+          game.mouseModel.hoverPos = 0;
+          game.mouseModel.boxDir = 0;
+          doMove(game, dir);
+          replay.push(dir);
+          doPostMoveSetup();
+        }
+        return;
+      }
       if (game.mouseModel.heroTrack.length === 0 || isReplaying) return;
       isReplaying = true;
       const time_step = 200;
       const track = game.mouseModel.heroTrack.slice();
       game.mouseModel.heroTrack.length = 0;
       game.mouseModel.hoverPos = 0;
+      game.mouseModel.boxDir = 0;
+      view.board.style.cursor = "default";
       followTrackLoop();
       function followTrackLoop() {
         if (track.length === 0) {
           isReplaying = false;
           return;
         }
-        game.heroPos = track.shift();
-        render(view.board, game, model.scale);
+        const pos = track.shift();
+        const s = Math.trunc(pos / 100);
+        const e = pos % 100;
+        const hs = Math.trunc(game.heroPos / 100);
+        const he = game.heroPos % 100;
+        let dir = 0;
+        if (hs === s - 1 && he === e) dir = DOWN;
+        else if (hs === s + 1 && he === e) dir = UP;
+        else if (hs === s && he === e + 1) dir = LEFT;
+        else if (hs === s && he === e - 1) dir = RIGHT;
+        if ((dir = canMove(game, dir)) && !isSolved(game)) {
+          doMove(game, dir);
+          replay.push(dir);
+          doPostMoveSetup();
+        }
         setTimeout(followTrackLoop, time_step);
       }
     }
@@ -2907,17 +2964,20 @@ var App = (() => {
           break;
       }
       if (isMove) {
-        setBoxMap(game);
-        setStepMap(game);
-        setPossibleMoves(game);
-        setGameState(game);
-        render(view.board, game, model.scale);
-        if (isSolved(game)) {
-          markGameSolved();
-        }
-        setUndoStyle();
-        setResetStyle();
+        doPostMoveSetup();
       }
+    }
+    function doPostMoveSetup() {
+      setBoxMap(game);
+      setStepMap(game);
+      setPossibleMoves(game);
+      setGameState(game);
+      render(view.board, game, model.scale);
+      if (isSolved(game)) {
+        markGameSolved();
+      }
+      setUndoStyle();
+      setResetStyle();
     }
     function playSolution(track) {
       isReplaying = true;
