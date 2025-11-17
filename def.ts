@@ -10,6 +10,12 @@ export interface ILevel {
   map    : string[],
 }
 
+export interface IMouseModel {
+  hoverPos : number;   // Posiiton of the hovered tile. 0 otherwise
+  heroTrack: number[]; // Hero track to plot. Empty for none
+  boxDir   : number;   // Direction of the possible push. 0 otherwise
+}
+
 export interface IGame {
   map          : string[],
   boxMap       : boolean[][],
@@ -22,6 +28,7 @@ export interface IGame {
   gameId       : number;
   initialGameId: number;
   solvedBoxesId: number;
+  mouseModel   : IMouseModel;
 }
 
 export interface IGameModel {

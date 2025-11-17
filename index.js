@@ -154,7 +154,8 @@ var App = (() => {
       boxesId: 0,
       gameId: level.id,
       initialGameId: 0,
-      solvedBoxesId: 0
+      solvedBoxesId: 0,
+      mouseModel: { hoverPos: 0, heroTrack: [], boxDir: 0 }
     };
     game.boxesId = getNumArrId(game.boxesPos);
     game.gameId = 31 * (game.boxesId | 0) + game.heroPos >>> 0;
@@ -2605,6 +2606,28 @@ var App = (() => {
         }
       }
     }
+    if (game.mouseModel.heroTrack.length > 0) {
+      let s = Math.trunc(game.heroPos / 100);
+      let e = game.heroPos % 100;
+      let tileX = e * tileSize;
+      let tileY = s * tileSize;
+      let midX = tileX + tileSize / 2;
+      let midY = tileY + tileSize / 2;
+      ctx.beginPath();
+      ctx.moveTo(midX, midY);
+      for (const pos of game.mouseModel.heroTrack) {
+        s = Math.trunc(pos / 100);
+        e = pos % 100;
+        tileX = e * tileSize;
+        tileY = s * tileSize;
+        midX = tileX + tileSize / 2;
+        midY = tileY + tileSize / 2;
+        ctx.lineTo(midX, midY);
+      }
+      ctx.strokeStyle = "#3600f8ff";
+      ctx.lineWidth = 3;
+      ctx.stroke();
+    }
     const hs = Math.trunc(game.heroPos / 100);
     const he = game.heroPos % 100;
     ctx.fillText("\u{1F9D1}\u200D\u{1F3ED}", he * tileSize + tileSize / 2, hs * tileSize + tileSize / 2);
@@ -2614,6 +2637,15 @@ var App = (() => {
       const tileX = e * tileSize;
       const tileY = s * tileSize;
       ctx.fillText("\u{1F4E6}", tileX + tileSize / 2, tileY + tileSize / 2);
+    }
+    if (game.mouseModel.hoverPos > 0) {
+      const s = Math.trunc(game.mouseModel.hoverPos / 100);
+      const e = game.mouseModel.hoverPos % 100;
+      const tileX = e * tileSize;
+      const tileY = s * tileSize;
+      const midX = tileX + tileSize / 2;
+      const midY = tileY + tileSize / 2;
+      drawDot(midX, midY, 3 * dotR, "#3600f8ff");
     }
     function drawDot(x, y, r, color) {
       ctx.beginPath();
@@ -2647,6 +2679,59 @@ var App = (() => {
     view.reset.addEventListener("click", onReset);
     view.next.addEventListener("click", onNext);
     view.undo.addEventListener("click", onUndo);
+    view.board.addEventListener("mouseenter", onMouseEnter);
+    view.board.addEventListener("mouseleave", onMouseLeave);
+    view.board.addEventListener("mousemove", onMouseMove);
+    view.board.addEventListener("mousedown", onMouseDown);
+    function onMouseEnter(event) {
+      onMouseMove(event);
+    }
+    function onMouseLeave(event) {
+      event.preventDefault();
+      game.mouseModel.hoverPos = 0;
+      game.mouseModel.boxDir = 0;
+      game.mouseModel.heroTrack.length = 0;
+      render(view.board, game, model.scale);
+    }
+    function onMouseMove(event) {
+      event.preventDefault();
+      if (isReplaying) return;
+      const oldHoverPos = game.mouseModel.hoverPos;
+      game.mouseModel.hoverPos = 0;
+      game.mouseModel.heroTrack.length = 0;
+      const boardRect = view.board.getBoundingClientRect();
+      const s = Math.trunc((event.pageY - boardRect.top) / (TILE_SIZE * model.scale));
+      const e = Math.trunc((event.pageX - boardRect.left) / (TILE_SIZE * model.scale));
+      if (game.stepMap[s][e]) {
+        const hoverPos = 100 * s + e;
+        game.mouseModel.hoverPos = hoverPos;
+        if (hoverPos !== game.heroPos) {
+          game.mouseModel.heroTrack = findHeroTrack(game, hoverPos);
+        }
+      }
+      if (game.mouseModel.hoverPos !== oldHoverPos) {
+        render(view.board, game, model.scale);
+      }
+    }
+    function onMouseDown(event) {
+      event.preventDefault();
+      if (game.mouseModel.heroTrack.length === 0 || isReplaying) return;
+      isReplaying = true;
+      const time_step = 200;
+      const track = game.mouseModel.heroTrack.slice();
+      game.mouseModel.heroTrack.length = 0;
+      game.mouseModel.hoverPos = 0;
+      followTrackLoop();
+      function followTrackLoop() {
+        if (track.length === 0) {
+          isReplaying = false;
+          return;
+        }
+        game.heroPos = track.shift();
+        render(view.board, game, model.scale);
+        setTimeout(followTrackLoop, time_step);
+      }
+    }
     function setLevel(id) {
       replay.length = 0;
       model.levelId = id;

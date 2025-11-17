@@ -2,7 +2,7 @@ import { type IGame, type ILevel, type IGameModel, UP, LEFT, RIGHT, DOWN, PUSH }
 import { canMove, doMove, isSolved, loadGame, storeGame, moveBox, makePointNext, setGameState, initGameState, findOppositePosition, findHeroTrack } from "./game-engine.ts";
 import { initGoodMap, setGoodMap, setPossibleMoves, initBoxMap, setBoxMap, initStepMap, setStepMap, runSolver } from "./solver.ts";
 import { easyLevels } from "./easy-levels.ts";
-import { render, scaleCanvas } from "./renderer.ts";
+import { render, scaleCanvas, TILE_SIZE } from "./renderer.ts";
 
 interface IView {
   board  : HTMLCanvasElement;
@@ -41,6 +41,71 @@ export function main(): void {
   view.reset .addEventListener("click", onReset);
   view.next  .addEventListener("click", onNext);
   view.undo  .addEventListener("click", onUndo);
+
+  // Mouse events
+  view.board.addEventListener("mouseenter", onMouseEnter);
+  view.board.addEventListener("mouseleave", onMouseLeave);
+  view.board.addEventListener("mousemove",  onMouseMove);
+  view.board.addEventListener("mousedown",  onMouseDown);
+
+  function onMouseEnter(event: MouseEvent): void {
+    onMouseMove(event);
+  }
+
+  function onMouseLeave(event: MouseEvent): void {
+    event.preventDefault();
+    game.mouseModel.hoverPos = 0;
+    game.mouseModel.boxDir   = 0;
+    game.mouseModel.heroTrack.length = 0;
+    render(view.board, game, model.scale);
+  }
+
+  function onMouseMove(event: MouseEvent): void {
+    event.preventDefault();
+    if (isReplaying) return;
+
+    const oldHoverPos = game.mouseModel.hoverPos;
+    game.mouseModel.hoverPos = 0;
+    game.mouseModel.heroTrack.length = 0;
+
+    const boardRect: DOMRect = view.board.getBoundingClientRect();
+    const s: number = Math.trunc((event.pageY - boardRect.top ) / (TILE_SIZE * model.scale));
+    const e: number = Math.trunc((event.pageX - boardRect.left) / (TILE_SIZE * model.scale));
+    if (game.stepMap[s][e]) {
+      const hoverPos = 100 * s + e;
+      game.mouseModel.hoverPos = hoverPos;
+      if (hoverPos !== game.heroPos) {
+        game.mouseModel.heroTrack = findHeroTrack(game, hoverPos);
+      }
+    }
+
+    if (game.mouseModel.hoverPos !== oldHoverPos) {
+      render(view.board, game, model.scale);
+    }
+  }
+
+  function onMouseDown(event: MouseEvent): void {
+    event.preventDefault();
+    if (game.mouseModel.heroTrack.length === 0 || isReplaying) return;
+    isReplaying = true;
+
+    const time_step = 200;
+    const track: number[] = game.mouseModel.heroTrack.slice();
+    game.mouseModel.heroTrack.length = 0;
+    game.mouseModel.hoverPos = 0;
+
+    followTrackLoop();
+
+    function followTrackLoop(): void {
+      if (track.length === 0) {
+        isReplaying = false;
+        return;
+      }
+      game.heroPos = track.shift() as number;
+      render(view.board, game, model.scale);
+      setTimeout(followTrackLoop, time_step);
+    }
+  }
 
   function setLevel(id: number): void {
     replay.length = 0;

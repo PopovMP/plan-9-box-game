@@ -146,6 +146,7 @@ export function initGameState(level: ILevel): IGame {
     gameId       : level.id,
     initialGameId: 0,
     solvedBoxesId: 0,
+    mouseModel   : { hoverPos: 0, heroTrack: [], boxDir: 0 },
   };
 
   game.boxesId       = getNumArrId(game.boxesPos);

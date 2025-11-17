@@ -2,7 +2,7 @@ import { type IGame,
 //  UP, LEFT, RIGHT, DOWN,
 } from "./def.ts";
 
-const TILE_SIZE = 32;
+export const TILE_SIZE = 32;
 
 export function scaleCanvas(canvas: HTMLCanvasElement, game: IGame, scale: number): void{
   canvas.width  = Math.round(scale * TILE_SIZE * game.map[0].length);
@@ -46,6 +46,29 @@ export function render(canvas: HTMLCanvasElement, game: IGame, scale: number): v
     }
   }}
 
+  if (game.mouseModel.heroTrack.length > 0) {
+    let s    : number = Math.trunc(game.heroPos / 100);
+    let e    : number = game.heroPos % 100;
+    let tileX: number = e * tileSize;
+    let tileY: number = s * tileSize;
+    let midX : number = tileX + tileSize / 2;
+    let midY : number = tileY + tileSize / 2;
+    ctx.beginPath();
+    ctx.moveTo(midX, midY);
+    for (const pos of game.mouseModel.heroTrack) {
+      s     = Math.trunc(pos / 100);
+      e     = pos % 100;
+      tileX = e * tileSize;
+      tileY = s * tileSize;
+      midX  = tileX + tileSize / 2;
+      midY  = tileY + tileSize / 2;
+      ctx.lineTo(midX, midY);
+    }
+    ctx.strokeStyle = "#3600f8ff";
+    ctx.lineWidth   = 3;
+    ctx.stroke();
+  }
+
   // Draw hero
   const hs = Math.trunc(game.heroPos / 100);
   const he = game.heroPos % 100;
@@ -53,11 +76,21 @@ export function render(canvas: HTMLCanvasElement, game: IGame, scale: number): v
 
   // Draw boxes
   for (const pos of game.boxesPos) {
-    const s = Math.trunc(pos / 100);
-    const e = pos % 100;
-    const tileX = e * tileSize;
-    const tileY = s * tileSize;
+    const s    : number = Math.trunc(pos / 100);
+    const e    : number = pos % 100;
+    const tileX: number = e * tileSize;
+    const tileY: number = s * tileSize;
     ctx.fillText("📦", tileX + tileSize / 2, tileY + tileSize / 2);
+  }
+
+  if (game.mouseModel.hoverPos > 0) {
+    const s    : number = Math.trunc(game.mouseModel.hoverPos / 100);
+    const e    : number = game.mouseModel.hoverPos % 100;
+    const tileX: number = e * tileSize;
+    const tileY: number = s * tileSize;
+    const midX : number = tileX + tileSize / 2;
+    const midY : number = tileY + tileSize / 2;
+    drawDot(midX, midY, 3*dotR, "#3600f8ff");
   }
 
   // // Mark good tiles
